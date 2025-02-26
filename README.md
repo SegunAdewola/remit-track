@@ -17,10 +17,10 @@ The original goal was to build a python package but accounting for all shapes of
   - Wise
 
 - Things to do
-  [] Universal class for starter code
-  [] Methods for Universal class
-  [] Publish formatting for universal class base_url and payload (for API Requests)
-  [] Documentation for using starter code
-  [] Example Usage
-  [] Documentation
-  [] Tests "😔"
+  - [ ] Universal class for starter code
+  - [ ] Methods for Universal class
+  - [ ] Publish formatting for universal class base_url and payload (for API Requests)
+  - [ ] Documentation for using starter code
+  - [ ] Example Usage
+  - [ ] Documentation
+  - [ ] Tests "😔"
