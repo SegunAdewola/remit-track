@@ -1,0 +1,40 @@
+{
+  "estimate": {
+    "conduit": {
+      "source_country": "GBR",
+      "source_currency": {
+        "alpha3": "GBP",
+        "decimal_count": 2,
+        "name": "Pound Sterling",
+        "symbol": "£"
+      },
+      "target_country": "NGA",
+      "target_currency": {
+        "alpha3": "NGN",
+        "decimal_count": 2,
+        "name": "Nigerian Naira",
+        "symbol": "₦"
+      }
+    },
+    "discount": {
+      "fee_discount_amount": null,
+      "send_discount_amount": "0.00"
+    },
+    "exchange_rate": {
+      "base_rate": "1870.22",
+      "capped_promotional_exchange_rate_amount": "250.00",
+      "promotional_exchange_rate": "1902.01"
+    },
+    "fee": {
+      "total_fee_amount": "0.00"
+    },
+    "pay_in_method": "DEBIT",
+    "pay_out_method": "",
+    "receive_amount": "190201.00",
+    "send_amount": "100.00",
+    "tax_details": null,
+    "total_charge_amount": "100.00",
+    "vet": null
+  },
+  "pay_out_price_estimates": null
+}

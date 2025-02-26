@@ -1,0 +1,339 @@
+{
+    "data": [
+        {
+            "id": "0354f1fc-3e00-4a9d-9264-4980d4118563",
+            "countryCode": "LTU",
+            "countryCodeIso2": "LT",
+            "name": "LITHUANIA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "06df93fe-f02a-49f9-a3c0-fb5f0ae01804",
+            "countryCode": "IRL",
+            "countryCodeIso2": "IE",
+            "name": "IRELAND",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "10c3cfd0-ea50-4b66-aa44-885c81423035",
+            "countryCode": "FRA",
+            "countryCodeIso2": "FR",
+            "name": "FRANCE",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "1d7c4611-f5b0-4034-8a7e-90edea067172",
+            "countryCode": "GRC",
+            "countryCodeIso2": "GR",
+            "name": "GREECE",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "2312d70f-f540-4b14-b3e5-a7165a15b457",
+            "countryCode": "DEU",
+            "countryCodeIso2": "DE",
+            "name": "GERMANY",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "28f82e27-1fe9-48d4-822f-3a44c2e3894f",
+            "countryCode": "FIN",
+            "countryCodeIso2": "FI",
+            "name": "FINLAND",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "2a8ed788-87b0-4b93-948c-a8f6fa974253",
+            "countryCode": "GBR",
+            "countryCodeIso2": "GB",
+            "name": "UNITED KINGDOM",
+            "currencyCode": "GBP",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "3535a750-590f-495f-86ca-5c5cd6fa089b",
+            "countryCode": "PRT",
+            "countryCodeIso2": "PT",
+            "name": "PORTUGAL",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "36adbbcc-85e7-493a-a84b-632554609028",
+            "countryCode": "UGA",
+            "countryCodeIso2": "UG",
+            "name": "Uganda",
+            "currencyCode": "UGX",
+            "from": false,
+            "to": false,
+            "isACHEnabled": false
+        },
+        {
+            "id": "390243ea-cf74-47fd-ba40-26644915c035",
+            "countryCode": "RWA",
+            "countryCodeIso2": "RW",
+            "name": "Rwanda",
+            "currencyCode": "RWF",
+            "from": false,
+            "to": false,
+            "isACHEnabled": false
+        },
+        {
+            "id": "3a0bf1a5-72e8-8461-0d9f-e399ab93de36",
+            "countryCode": "CAN",
+            "countryCodeIso2": "CA",
+            "name": "Canada",
+            "currencyCode": "CAD",
+            "from": false,
+            "to": false,
+            "isACHEnabled": false
+        },
+        {
+            "id": "3a0cbee2-c816-2a26-ab0b-20a09235ad1c",
+            "countryCode": "SEN",
+            "countryCodeIso2": "SN",
+            "name": "Senegal",
+            "currencyCode": "XOF",
+            "from": false,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "3a0cbf03-6b17-cce4-6479-a7a5bb8f4b2e",
+            "countryCode": "EGY",
+            "countryCodeIso2": "EG",
+            "name": "Egypt",
+            "currencyCode": "EGP",
+            "from": false,
+            "to": false,
+            "isACHEnabled": false
+        },
+        {
+            "id": "3a10e2b2-e326-248e-6cba-b7056a90c1aa",
+            "countryCode": "",
+            "countryCodeIso2": "MW",
+            "name": "Malawi",
+            "currencyCode": "MWK",
+            "from": false,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "578a854e-0bf1-495b-a81d-3ad8b651fc74",
+            "countryCode": "SVN",
+            "countryCodeIso2": "SI",
+            "name": "SLOVENIA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "59cc0ccf-0e55-4306-8c34-bd4ca4d221d2",
+            "countryCode": "CMR",
+            "countryCodeIso2": "CM",
+            "name": "Cameroon",
+            "currencyCode": "XAF",
+            "from": false,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "5d3a7c15-2b14-4be6-b80f-4239de9b2606",
+            "countryCode": "MLT",
+            "countryCodeIso2": "MT",
+            "name": "MALTA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "5d8a9534-f06f-45f7-b0a7-02f4fe8cd13c",
+            "countryCode": "ETH",
+            "countryCodeIso2": "ET",
+            "name": "Ethiopia",
+            "currencyCode": "ETB",
+            "from": false,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "6c8fee2c-f49b-4bb3-836f-d1dd3b4d35ae",
+            "countryCode": "AUT",
+            "countryCodeIso2": "AT",
+            "name": "AUSTRIA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "74587eb0-25f7-42df-a807-63f07c982681",
+            "countryCode": "LUX",
+            "countryCodeIso2": "LU",
+            "name": "LUXEMBOURG",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "7eedfeb0-14cc-4fac-b040-648b11324441",
+            "countryCode": "CYP",
+            "countryCodeIso2": "CY",
+            "name": "CYPRUS",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "818114b5-270e-4785-8312-886acdd342b7",
+            "countryCode": "CIV",
+            "countryCodeIso2": "CI",
+            "name": "Cote D\u2019Ivoire",
+            "currencyCode": "XOF",
+            "from": false,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "81bcaee1-b2ca-4b71-8791-e0872ed13b14",
+            "countryCode": "GHA",
+            "countryCodeIso2": "GH",
+            "name": "Ghana",
+            "currencyCode": "GHS",
+            "from": false,
+            "to": false,
+            "isACHEnabled": false
+        },
+        {
+            "id": "8d678072-8c2e-4cce-9fae-607e67dddec1",
+            "countryCode": "SVK",
+            "countryCodeIso2": "SK",
+            "name": "SLOVAKIA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "abe779f4-a2ff-47ec-9e73-ccfe4d9b6f4e",
+            "countryCode": "NLD",
+            "countryCodeIso2": "NL",
+            "name": "NETHERLANDS",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "b3121066-b932-4219-9c4d-f790fa154e92",
+            "countryCode": "USA",
+            "countryCodeIso2": "US",
+            "name": "UNITED STATES",
+            "currencyCode": "USD",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "c0d69e4e-912e-4beb-a594-273a7d25063a",
+            "countryCode": "LVA",
+            "countryCodeIso2": "LV",
+            "name": "LATVIA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "d4a144ba-cc6d-4173-9c76-39a6200f8e66",
+            "countryCode": "ZAF",
+            "countryCodeIso2": "ZA",
+            "name": "South Africa",
+            "currencyCode": "ZAR",
+            "from": false,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "d4b67a35-ae8d-4d0a-8f08-c1c34f72cd70",
+            "countryCode": "BEL",
+            "countryCodeIso2": "BE",
+            "name": "BELGIUM",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "d8d0b3ef-2eb3-4f4f-9cce-f6a792e76b7d",
+            "countryCode": "NGA",
+            "countryCodeIso2": "NG",
+            "name": "Nigeria",
+            "currencyCode": "NGN",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "d8e71737-b318-4bbb-bd02-734a9a16ca6e",
+            "countryCode": "ESP",
+            "countryCodeIso2": "ES",
+            "name": "SPAIN",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "d9858fc7-1aff-4a96-954e-630b9fc38fc9",
+            "countryCode": "ITA",
+            "countryCodeIso2": "IT",
+            "name": "ITALY",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        },
+        {
+            "id": "e3535277-af6f-4d67-afca-890185ac69f3",
+            "countryCode": "EST",
+            "countryCodeIso2": "EE",
+            "name": "ESTONIA",
+            "currencyCode": "EUR",
+            "from": true,
+            "to": true,
+            "isACHEnabled": false
+        }
+    ],
+    "servertime": "2025-02-25T21:56:09.7070723Z",
+    "message_Id": "success_country_list",
+    "message": "Success",
+    "succeeded": true,
+    "errorId": null
+}
