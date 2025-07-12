@@ -22,7 +22,10 @@
             --accent-color: #007aff;
             --accent-hover: #0056d6;
             --success-color: #34c759;
+            --warning-color: #ff9f0a;
             --shadow-light: rgba(0, 0, 0, 0.1);
+            --message-bg: #e9ecef;
+            --message-user: #007aff;
         }
 
         [data-theme="dark"] {
@@ -36,7 +39,10 @@
             --accent-color: #007aff;
             --accent-hover: #0056d6;
             --success-color: #34c759;
+            --warning-color: #ff9f0a;
             --shadow-light: rgba(255, 255, 255, 0.1);
+            --message-bg: #2c2c2e;
+            --message-user: #007aff;
         }
 
         body {
@@ -48,6 +54,7 @@
             font-size: 17px;
             overflow-x: hidden;
             transition: background-color 0.3s ease, color 0.3s ease;
+            padding-bottom: 80px;
         }
 
         .container {
@@ -148,7 +155,7 @@
 
         /* Main Content */
         .main-content {
-            padding: 56px 0 80px;
+            padding: 56px 0 0;
         }
 
         .hero-section {
@@ -173,13 +180,70 @@
             letter-spacing: 0.011em;
         }
 
-        /* Search Section */
-        .search-section {
+        /* Draggable Cards */
+        .cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 56px;
+        }
+
+        .card {
+            background: var(--bg-primary);
+            border-radius: 18px;
+            padding: 48px 40px;
+            border: 0.5px solid var(--border-light);
+            cursor: grab;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 24px var(--shadow-light);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .card-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.003em;
+        }
+
+        .drag-handle {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: grab;
+            color: var(--text-secondary);
+            font-size: 16px;
+            border: 0.5px solid var(--border-color);
+        }
+
+        .drag-handle:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Combined Search & Results Card */
+        .search-results-card {
             background: var(--bg-secondary);
             border-radius: 18px;
             padding: 48px 40px;
-            margin-bottom: 56px;
             border: 0.5px solid var(--border-light);
+        }
+
+        .search-section {
+            margin-bottom: 40px;
         }
 
         .search-form {
@@ -347,84 +411,6 @@
             color: var(--text-primary);
         }
 
-        /* Natural Language Search */
-        .nl-search-section {
-            margin-top: 32px;
-            padding-top: 32px;
-            border-top: 0.5px solid var(--border-color);
-        }
-
-        .nl-search-label {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 17px;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .nl-input {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-primary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 17px;
-            color: var(--text-primary);
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-            min-height: 44px;
-        }
-
-        .nl-input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
-        }
-
-        .nl-input::placeholder {
-            color: var(--text-secondary);
-            opacity: 1;
-        }
-
-        /* Results Table */
-        .results-section {
-            background: var(--bg-primary);
-            border-radius: 18px;
-            padding: 48px 40px;
-            border: 0.5px solid var(--border-light);
-            margin-bottom: 56px;
-        }
-
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-
-        .results-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.003em;
-        }
-
-        .rate-alert-btn {
-            background: var(--accent-color);
-            color: var(--bg-primary);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 18px;
-            font-weight: 400;
-            font-size: 17px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-        }
-
-        .rate-alert-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-
         /* Results Table */
         .results-table {
             width: 100%;
@@ -433,7 +419,7 @@
         }
 
         .results-table th {
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             padding: 16px;
             text-align: left;
             font-weight: 600;
@@ -451,7 +437,7 @@
         }
 
         .results-table tr:hover {
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
         }
 
         .provider-cell {
@@ -480,7 +466,7 @@
 
         /* Expanded Card */
         .expanded-card {
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             border-radius: 12px;
             padding: 24px;
             margin-top: 16px;
@@ -504,14 +490,14 @@
             }
         }
 
-        .card-header {
+        .expanded-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
 
-        .card-title {
+        .expanded-card-title {
             font-size: 20px;
             font-weight: 600;
             color: var(--text-primary);
@@ -564,7 +550,7 @@
 
         .card-action {
             flex: 1;
-            background: var(--bg-primary);
+            background: var(--bg-secondary);
             border: 0.5px solid var(--border-color);
             color: var(--text-primary);
             padding: 10px;
@@ -589,30 +575,9 @@
         }
 
         /* Alerts Section */
-        .alerts-section {
-            background: var(--bg-primary);
-            border-radius: 18px;
-            padding: 48px 40px;
-            border: 0.5px solid var(--border-light);
-            margin-bottom: 56px;
-        }
-
-        .alerts-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-
-        .alerts-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
         .alerts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 24px;
         }
 
@@ -647,8 +612,16 @@
             border-radius: 6px;
             font-size: 12px;
             font-weight: 500;
+        }
+
+        .alert-status.active {
             background: var(--success-color);
-            color: var(--bg-primary);
+            color: white;
+        }
+
+        .alert-status.hit {
+            background: var(--warning-color);
+            color: white;
         }
 
         .alert-target {
@@ -657,16 +630,29 @@
             margin-bottom: 16px;
         }
 
-        .sparkline {
-            height: 40px;
+        /* Demo Chart */
+        .demo-chart {
+            height: 60px;
             background: var(--bg-primary);
             border-radius: 8px;
             margin-bottom: 16px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            font-size: 14px;
+            align-items: end;
+            justify-content: space-between;
+            padding: 8px;
+            border: 0.5px solid var(--border-color);
+        }
+
+        .chart-bar {
+            width: 4px;
+            background: var(--accent-color);
+            border-radius: 2px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .chart-bar:hover {
+            opacity: 1;
         }
 
         .alert-actions {
@@ -691,56 +677,96 @@
         }
 
         /* Chat Section */
-        .chat-section {
-            background: var(--bg-primary);
-            border-radius: 18px;
-            padding: 48px 40px;
-            border: 0.5px solid var(--border-light);
-            margin-bottom: 56px;
-        }
-
-        .chat-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .chat-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        .chat-subtitle {
-            color: var(--text-secondary);
-            font-size: 17px;
-        }
-
         .chat-container {
             background: var(--bg-secondary);
             border-radius: 12px;
-            height: 500px;
             display: flex;
             flex-direction: column;
             border: 0.5px solid var(--border-color);
+            resize: vertical;
+            min-height: 400px;
+            max-height: 800px;
+            overflow: hidden;
         }
 
         .chat-messages {
             flex: 1;
             padding: 24px;
             overflow-y: auto;
+            min-height: 300px;
         }
 
         .chat-welcome {
             text-align: center;
             color: var(--text-secondary);
             font-size: 17px;
-            margin-top: 100px;
+            margin-top: 80px;
+            margin-bottom: 24px;
+        }
+
+        .suggested-messages {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .suggested-message {
+            background: var(--bg-primary);
+            border: 0.5px solid var(--border-color);
+            border-radius: 18px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .suggested-message:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .message.user .message-bubble {
+            background: var(--message-user);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.ai .message-bubble {
+            background: var(--message-bg);
+            color: var(--text-primary);
+            border-bottom-left-radius: 6px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin: 4px 8px;
         }
 
         .chat-input-area {
             padding: 20px;
             border-top: 0.5px solid var(--border-color);
+            background: var(--bg-primary);
         }
 
         .chat-input-container {
@@ -754,7 +780,7 @@
             padding: 12px 16px;
             border: 0.5px solid var(--border-color);
             border-radius: 18px;
-            background: var(--bg-primary);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             font-size: 17px;
             transition: all 0.3s ease;
@@ -768,7 +794,7 @@
 
         .chat-send {
             background: var(--accent-color);
-            color: var(--bg-primary);
+            color: white;
             border: none;
             border-radius: 50%;
             width: 44px;
@@ -782,35 +808,69 @@
             background: var(--accent-hover);
         }
 
-        /* Floating Chat (Hidden when main chat is visible) */
-        .floating-chat {
+        .chat-send:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        /* Resize Handle */
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(-45deg, transparent 6px, var(--border-color) 6px, var(--border-color) 8px, transparent 8px),
+                        linear-gradient(-45deg, transparent 10px, var(--border-color) 10px, var(--border-color) 12px, transparent 12px),
+                        linear-gradient(-45deg, transparent 14px, var(--border-color) 14px, var(--border-color) 16px, transparent 16px);
+            cursor: nw-resize;
+            border-radius: 0 0 12px 0;
+        }
+
+        /* Bottom Tray */
+        .bottom-tray {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border-top: 0.5px solid var(--border-color);
+            padding: 12px 0;
             z-index: 1000;
-            transition: all 0.3s ease;
         }
 
-        .floating-chat.hidden {
-            opacity: 0;
-            pointer-events: none;
+        .tray-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 22px;
         }
 
-        .chat-toggle {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            border: none;
-            font-size: 24px;
+        .tray-items {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+
+        .tray-item {
+            background: var(--bg-secondary);
+            border: 0.5px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
             cursor: pointer;
-            box-shadow: 0 4px 24px var(--shadow-light);
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            font-size: 14px;
+            color: var(--text-primary);
         }
 
-        .chat-toggle:hover {
-            transform: scale(1.05);
+        .tray-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .tray-item.active {
+            background: var(--accent-color);
+            color: white;
         }
 
         /* Responsive Design */
@@ -836,13 +896,7 @@
                 margin: 16px auto;
             }
 
-            .search-section {
-                padding: 32px 24px;
-            }
-
-            .results-section,
-            .alerts-section,
-            .chat-section {
+            .card {
                 padding: 32px 24px;
             }
 
@@ -856,6 +910,10 @@
 
             .alerts-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .tray-container {
+                padding: 0 16px;
             }
         }
 
@@ -909,276 +967,313 @@
                 <p class="hero-subtitle">Compare real-time rates across all major platforms</p>
             </div>
 
-            <div class="search-section">
-                <form class="search-form">
-                    <div class="form-group">
-                        <label class="form-label">From</label>
-                        <div class="custom-select" data-value="USD" id="fromCurrency">
-                            <div class="select-display">
-                                <span>USD - United States Dollar</span>
-                                <div class="select-arrow"></div>
+            <div class="cards-container" id="cardsContainer">
+                <!-- Search & Results Card -->
+                <div class="card" data-card="search-results" id="searchResultsCard">
+                    <div class="card-header">
+                        <h2 class="card-title">Rate Comparison</h2>
+                        <div class="drag-handle">⋮⋮</div>
+                    </div>
+                    
+                    <div class="search-section">
+                        <form class="search-form">
+                            <div class="form-group">
+                                <label class="form-label">From</label>
+                                <div class="custom-select" data-value="USD" id="fromCurrency">
+                                    <div class="select-display">
+                                        <span>USD - United States Dollar</span>
+                                        <div class="select-arrow"></div>
+                                    </div>
+                                    <div class="select-dropdown">
+                                        <div class="select-option selected" data-value="USD">USD - United States Dollar</div>
+                                        <div class="select-option" data-value="EUR">EUR - Euro</div>
+                                        <div class="select-option" data-value="GBP">GBP - British Pound</div>
+                                        <div class="select-option" data-value="CAD">CAD - Canadian Dollar</div>
+                                        <div class="select-option" data-value="AUD">AUD - Australian Dollar</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="select-dropdown">
-                                <div class="select-option selected" data-value="USD">USD - United States Dollar</div>
-                                <div class="select-option" data-value="EUR">EUR - Euro</div>
-                                <div class="select-option" data-value="GBP">GBP - British Pound</div>
-                                <div class="select-option" data-value="CAD">CAD - Canadian Dollar</div>
-                                <div class="select-option" data-value="AUD">AUD - Australian Dollar</div>
+                            
+                            <div class="currency-switch" onclick="switchCurrencies()">
+                                ⇄
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">To</label>
+                                <div class="custom-select" data-value="NGN" id="toCurrency">
+                                    <div class="select-display">
+                                        <span>NGN - Nigerian Naira</span>
+                                        <div class="select-arrow"></div>
+                                    </div>
+                                    <div class="select-dropdown">
+                                        <div class="select-option selected" data-value="NGN">NGN - Nigerian Naira</div>
+                                        <div class="select-option" data-value="KES">KES - Kenyan Shilling</div>
+                                        <div class="select-option" data-value="GHS">GHS - Ghanaian Cedi</div>
+                                        <div class="select-option" data-value="INR">INR - Indian Rupee</div>
+                                        <div class="select-option" data-value="PKR">PKR - Pakistani Rupee</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <div class="priority-section">
+                            <label class="form-label">Priority</label>
+                            <div class="priority-buttons">
+                                <button class="priority-btn active" data-priority="cheapest">Cheapest</button>
+                                <button class="priority-btn" data-priority="fastest">Fastest</button>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="currency-switch" onclick="switchCurrencies()">
-                        ⇄
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Rate</th>
+                                <th>Fees</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr onclick="toggleCard(this)" data-provider="western-union">
+                                <td>
+                                    <div class="provider-cell">
+                                        <div class="provider-logo">WU</div>
+                                        <div>Western Union</div>
+                                    </div>
+                                </td>
+                                <td class="rate-value">₦1,547.50</td>
+                                <td>$4.99</td>
+                                <td>$504.99</td>
+                            </tr>
+                            <tr onclick="toggleCard(this)" data-provider="remitly">
+                                <td>
+                                    <div class="provider-cell">
+                                        <div class="provider-logo">RM</div>
+                                        <div>Remitly</div>
+                                    </div>
+                                </td>
+                                <td class="rate-value">₦1,545.20</td>
+                                <td>$6.99</td>
+                                <td>$506.99</td>
+                            </tr>
+                            <tr onclick="toggleCard(this)" data-provider="worldremit">
+                                <td>
+                                    <div class="provider-cell">
+                                        <div class="provider-logo">WW</div>
+                                        <div>WorldRemit</div>
+                                    </div>
+                                </td>
+                                <td class="rate-value">₦1,542.80</td>
+                                <td>$3.99</td>
+                                <td>$503.99</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Expanded Cards -->
+                    <div class="expanded-card" id="western-union-card">
+                        <div class="expanded-card-header">
+                            <h3 class="expanded-card-title">Western Union - Bank Transfer</h3>
+                            <button class="close-card" onclick="closeCard('western-union-card')">×</button>
+                        </div>
+                        <div class="card-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Exchange Rate</div>
+                                <div class="detail-value">₦1,547.50</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Fees</div>
+                                <div class="detail-value">$4.99</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Speed</div>
+                                <div class="detail-value">1-2 days</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Rating</div>
+                                <div class="detail-value">4.2/5</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Total Cost</div>
+                                <div class="detail-value">$504.99</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-action">Set Alert</button>
+                            <button class="card-action primary">Send Money</button>
+                        </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label">To</label>
-                        <div class="custom-select" data-value="NGN" id="toCurrency">
-                            <div class="select-display">
-                                <span>NGN - Nigerian Naira</span>
-                                <div class="select-arrow"></div>
+                    <div class="expanded-card" id="remitly-card">
+                        <div class="expanded-card-header">
+                            <h3 class="expanded-card-title">Remitly - Express</h3>
+                            <button class="close-card" onclick="closeCard('remitly-card')">×</button>
+                        </div>
+                        <div class="card-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Exchange Rate</div>
+                                <div class="detail-value">₦1,545.20</div>
                             </div>
-                            <div class="select-dropdown">
-                                <div class="select-option selected" data-value="NGN">NGN - Nigerian Naira</div>
-                                <div class="select-option" data-value="KES">KES - Kenyan Shilling</div>
-                                <div class="select-option" data-value="GHS">GHS - Ghanaian Cedi</div>
-                                <div class="select-option" data-value="INR">INR - Indian Rupee</div>
-                                <div class="select-option" data-value="PKR">PKR - Pakistani Rupee</div>
+                            <div class="detail-item">
+                                <div class="detail-label">Fees</div>
+                                <div class="detail-value">$6.99</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Speed</div>
+                                <div class="detail-value">Minutes</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Rating</div>
+                                <div class="detail-value">4.6/5</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Total Cost</div>
+                                <div class="detail-value">$506.99</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-action">Set Alert</button>
+                            <button class="card-action primary">Send Money</button>
+                        </div>
+                    </div>
+                    
+                    <div class="expanded-card" id="worldremit-card">
+                        <div class="expanded-card-header">
+                            <h3 class="expanded-card-title">WorldRemit - Bank Transfer</h3>
+                            <button class="close-card" onclick="closeCard('worldremit-card')">×</button>
+                        </div>
+                        <div class="card-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Exchange Rate</div>
+                                <div class="detail-value">₦1,542.80</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Fees</div>
+                                <div class="detail-value">$3.99</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Speed</div>
+                                <div class="detail-value">1-3 days</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Rating</div>
+                                <div class="detail-value">4.1/5</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Total Cost</div>
+                                <div class="detail-value">$503.99</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-action">Set Alert</button>
+                            <button class="card-action primary">Send Money</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Card (Only visible for subscribers) -->
+                <div class="card" data-card="alerts" id="alertsCard" style="display: none;">
+                    <div class="card-header">
+                        <h2 class="card-title">Your Rate Alerts</h2>
+                        <div class="drag-handle">⋮⋮</div>
+                    </div>
+                    <div class="alerts-grid">
+                        <div class="alert-card">
+                            <div class="alert-header">
+                                <h3 class="alert-title">USD to NGN</h3>
+                                <span class="alert-status active">Active</span>
+                            </div>
+                            <div class="alert-target">Alert when rate hits ₦1,550 or better</div>
+                            <div class="demo-chart">
+                                <div class="chart-bar" style="height: 20px;"></div>
+                                <div class="chart-bar" style="height: 35px;"></div>
+                                <div class="chart-bar" style="height: 15px;"></div>
+                                <div class="chart-bar" style="height: 45px;"></div>
+                                <div class="chart-bar" style="height: 25px;"></div>
+                                <div class="chart-bar" style="height: 40px;"></div>
+                                <div class="chart-bar" style="height: 30px;"></div>
+                                <div class="chart-bar" style="height: 50px;"></div>
+                                <div class="chart-bar" style="height: 35px;"></div>
+                                <div class="chart-bar" style="height: 25px;"></div>
+                                <div class="chart-bar" style="height: 40px;"></div>
+                                <div class="chart-bar" style="height: 45px;"></div>
+                            </div>
+                            <div class="alert-actions">
+                                <button class="alert-action">Edit</button>
+                                <button class="alert-action">Pause</button>
+                                <button class="alert-action">Delete</button>
+                            </div>
+                        </div>
+                        <div class="alert-card">
+                            <div class="alert-header">
+                                <h3 class="alert-title">EUR to KES</h3>
+                                <span class="alert-status hit">Rate Hit!</span>
+                            </div>
+                            <div class="alert-target">Alert when rate hits 120 KES or better</div>
+                            <div class="demo-chart">
+                                <div class="chart-bar" style="height: 30px;"></div>
+                                <div class="chart-bar" style="height: 25px;"></div>
+                                <div class="chart-bar" style="height: 35px;"></div>
+                                <div class="chart-bar" style="height: 40px;"></div>
+                                <div class="chart-bar" style="height: 45px;"></div>
+                                <div class="chart-bar" style="height: 50px;"></div>
+                                <div class="chart-bar" style="height: 55px;"></div>
+                                <div class="chart-bar" style="height: 50px;"></div>
+                                <div class="chart-bar" style="height: 45px;"></div>
+                                <div class="chart-bar" style="height: 40px;"></div>
+                                <div class="chart-bar" style="height: 35px;"></div>
+                                <div class="chart-bar" style="height: 30px;"></div>
+                            </div>
+                            <div class="alert-actions">
+                                <button class="alert-action">Edit</button>
+                                <button class="alert-action">Pause</button>
+                                <button class="alert-action">Delete</button>
                             </div>
                         </div>
                     </div>
-                </form>
-                
-                <div class="priority-section">
-                    <label class="form-label">Priority</label>
-                    <div class="priority-buttons">
-                        <button class="priority-btn active" data-priority="cheapest">Cheapest</button>
-                        <button class="priority-btn" data-priority="fastest">Fastest</button>
-                        <button class="priority-btn" data-priority="safest">Safest</button>
-                    </div>
                 </div>
-                
-                <div class="nl-search-section">
-                    <label class="nl-search-label">Or ask me anything</label>
-                    <input type="text" class="nl-input" placeholder="What's the cheapest way to send $500 to Nigeria?">
-                </div>
-            </div>
 
-            <div class="results-section">
-                <div class="results-header">
-                    <h2 class="results-title">USD to NGN</h2>
-                    <button class="rate-alert-btn">Set Rate Alert</button>
-                </div>
-                
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>Provider</th>
-                            <th>Rate</th>
-                            <th>Fees</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr onclick="toggleCard(this)" data-provider="western-union">
-                            <td>
-                                <div class="provider-cell">
-                                    <div class="provider-logo">WU</div>
-                                    <div>Western Union</div>
-                                </div>
-                            </td>
-                            <td class="rate-value">₦1,547.50</td>
-                            <td>$4.99</td>
-                            <td>$504.99</td>
-                        </tr>
-                        <tr onclick="toggleCard(this)" data-provider="remitly">
-                            <td>
-                                <div class="provider-cell">
-                                    <div class="provider-logo">RM</div>
-                                    <div>Remitly</div>
-                                </div>
-                            </td>
-                            <td class="rate-value">₦1,545.20</td>
-                            <td>$6.99</td>
-                            <td>$506.99</td>
-                        </tr>
-                        <tr onclick="toggleCard(this)" data-provider="worldremit">
-                            <td>
-                                <div class="provider-cell">
-                                    <div class="provider-logo">WW</div>
-                                    <div>WorldRemit</div>
-                                </div>
-                            </td>
-                            <td class="rate-value">₦1,542.80</td>
-                            <td>$3.99</td>
-                            <td>$503.99</td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <!-- Expanded Cards -->
-                <div class="expanded-card" id="western-union-card">
+                <!-- Chat Card -->
+                <div class="card" data-card="chat" id="chatCard">
                     <div class="card-header">
-                        <h3 class="card-title">Western Union - Bank Transfer</h3>
-                        <button class="close-card" onclick="closeCard('western-union-card')">×</button>
+                        <h2 class="card-title">Remit Assistant</h2>
+                        <div class="drag-handle">⋮⋮</div>
                     </div>
-                    <div class="card-details">
-                        <div class="detail-item">
-                            <div class="detail-label">Exchange Rate</div>
-                            <div class="detail-value">₦1,547.50</div>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-welcome">
+                                Ask me anything about remittance rates and trends
+                            </div>
+                            <div class="suggested-messages" id="suggestedMessages">
+                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">USD to NGN trend last month</div>
+                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">Best day to send to Nigeria</div>
+                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">Compare Western Union vs Remitly</div>
+                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">Show me rate alerts</div>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Fees</div>
-                            <div class="detail-value">$4.99</div>
+                        <div class="chat-input-area">
+                            <div class="chat-input-container">
+                                <input type="text" class="chat-input" placeholder="Ask me anything about remittance rates..." id="mainChatInput">
+                                <button class="chat-send" onclick="sendMessage()" id="sendButton">→</button>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Speed</div>
-                            <div class="detail-value">1-2 days</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Rating</div>
-                            <div class="detail-value">4.2/5</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Total Cost</div>
-                            <div class="detail-value">$504.99</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="card-action">Set Alert</button>
-                        <button class="card-action primary">Send Money</button>
-                    </div>
-                </div>
-                
-                <div class="expanded-card" id="remitly-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Remitly - Express</h3>
-                        <button class="close-card" onclick="closeCard('remitly-card')">×</button>
-                    </div>
-                    <div class="card-details">
-                        <div class="detail-item">
-                            <div class="detail-label">Exchange Rate</div>
-                            <div class="detail-value">₦1,545.20</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Fees</div>
-                            <div class="detail-value">$6.99</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Speed</div>
-                            <div class="detail-value">Minutes</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Rating</div>
-                            <div class="detail-value">4.6/5</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Total Cost</div>
-                            <div class="detail-value">$506.99</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="card-action">Set Alert</button>
-                        <button class="card-action primary">Send Money</button>
-                    </div>
-                </div>
-                
-                <div class="expanded-card" id="worldremit-card">
-                    <div class="card-header">
-                        <h3 class="card-title">WorldRemit - Bank Transfer</h3>
-                        <button class="close-card" onclick="closeCard('worldremit-card')">×</button>
-                    </div>
-                    <div class="card-details">
-                        <div class="detail-item">
-                            <div class="detail-label">Exchange Rate</div>
-                            <div class="detail-value">₦1,542.80</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Fees</div>
-                            <div class="detail-value">$3.99</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Speed</div>
-                            <div class="detail-value">1-3 days</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Rating</div>
-                            <div class="detail-value">4.1/5</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Total Cost</div>
-                            <div class="detail-value">$503.99</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="card-action">Set Alert</button>
-                        <button class="card-action primary">Send Money</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Alerts Section (Only visible for subscribers) -->
-            <div class="alerts-section" id="alertsSection" style="display: none;">
-                <div class="alerts-header">
-                    <h2 class="alerts-title">Your Rate Alerts</h2>
-                    <button class="rate-alert-btn">+ New Alert</button>
-                </div>
-                <div class="alerts-grid">
-                    <div class="alert-card">
-                        <div class="alert-header">
-                            <h3 class="alert-title">USD to NGN</h3>
-                            <span class="alert-status">Active</span>
-                        </div>
-                        <div class="alert-target">Target: ₦1,550 or better</div>
-                        <div class="sparkline">📈 Rate trend chart</div>
-                        <div class="alert-actions">
-                            <button class="alert-action">Edit</button>
-                            <button class="alert-action">Pause</button>
-                            <button class="alert-action">Delete</button>
-                        </div>
-                    </div>
-                    <div class="alert-card">
-                        <div class="alert-header">
-                            <h3 class="alert-title">EUR to KES</h3>
-                            <span class="alert-status">Triggered</span>
-                        </div>
-                        <div class="alert-target">Target: 120 KES or better</div>
-                        <div class="sparkline">📊 Rate trend chart</div>
-                        <div class="alert-actions">
-                            <button class="alert-action">Edit</button>
-                            <button class="alert-action">Pause</button>
-                            <button class="alert-action">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Section -->
-            <div class="chat-section" id="chatSection">
-                <div class="chat-header">
-                    <h2 class="chat-title">Remit Assistant</h2>
-                    <p class="chat-subtitle">Get insights, analytics, and answers about remittance rates</p>
-                </div>
-                <div class="chat-container">
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="chat-welcome">
-                            Hi! I can help you analyze remittance trends, find the best rates, and answer questions about sending money internationally. Try asking me something like "Show me USD to NGN trends for the last month" or "What's the best day to send money to Kenya?"
-                        </div>
-                    </div>
-                    <div class="chat-input-area">
-                        <div class="chat-input-container">
-                            <input type="text" class="chat-input" placeholder="Ask me anything about remittance rates..." id="mainChatInput">
-                            <button class="chat-send" onclick="sendMessage()">→</button>
-                        </div>
+                        <div class="resize-handle"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="floating-chat" id="floatingChat">
-        <button class="chat-toggle" onclick="scrollToChat()">💬</button>
+    <!-- Bottom Tray -->
+    <div class="bottom-tray">
+        <div class="tray-container">
+            <div class="tray-items" id="trayItems">
+                <div class="tray-item active" data-target="searchResultsCard">Rate Comparison</div>
+                <div class="tray-item" data-target="alertsCard" style="display: none;">Rate Alerts</div>
+                <div class="tray-item" data-target="chatCard">Chat Assistant</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1203,7 +1298,6 @@
                 opt.classList.toggle('active', opt.getAttribute('data-theme') === savedTheme);
             });
         } else {
-            // Auto-detect system theme
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const theme = prefersDark ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', theme);
@@ -1222,13 +1316,11 @@
             const toValue = toSelect.getAttribute('data-value');
             const toText = toSelect.querySelector('.select-display span').textContent;
             
-            // Switch values
             fromSelect.setAttribute('data-value', toValue);
             fromSelect.querySelector('.select-display span').textContent = toText;
             toSelect.setAttribute('data-value', fromValue);
             toSelect.querySelector('.select-display span').textContent = fromText;
             
-            // Update selected options
             fromSelect.querySelectorAll('.select-option').forEach(opt => {
                 opt.classList.toggle('selected', opt.getAttribute('data-value') === toValue);
             });
@@ -1286,20 +1378,157 @@
             const cardId = provider + '-card';
             const card = document.getElementById(cardId);
             
-            // Close other cards
             document.querySelectorAll('.expanded-card').forEach(otherCard => {
                 if (otherCard.id !== cardId) {
                     otherCard.classList.remove('active');
                 }
             });
             
-            // Toggle current card
             card.classList.toggle('active');
         }
 
         function closeCard(cardId) {
             document.getElementById(cardId).classList.remove('active');
         }
+
+        // Drag and drop functionality
+        let draggedCard = null;
+
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('dragstart', function(e) {
+                draggedCard = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            card.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                draggedCard = null;
+            });
+
+            card.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            card.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (draggedCard && draggedCard !== this) {
+                    const container = document.getElementById('cardsContainer');
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    
+                    if (afterElement == null) {
+                        container.appendChild(draggedCard);
+                    } else {
+                        container.insertBefore(draggedCard, afterElement);
+                    }
+                }
+            });
+
+            // Make cards draggable
+            card.setAttribute('draggable', 'true');
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // Bottom tray functionality
+        document.querySelectorAll('.tray-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const targetCard = document.getElementById(targetId);
+                
+                if (targetCard) {
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Update active state
+                    document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Update active tray item on scroll
+        function updateActiveTrayItem() {
+            const cards = document.querySelectorAll('.card');
+            const trayItems = document.querySelectorAll('.tray-item');
+            
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const cardId = card.id;
+                
+                if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
+                    trayItems.forEach(item => {
+                        item.classList.toggle('active', item.getAttribute('data-target') === cardId);
+                    });
+                }
+            });
+        }
+
+        // Chat functionality
+        function sendMessage() {
+            const input = document.getElementById('mainChatInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                addMessage(message, 'user');
+                input.value = '';
+                
+                // Hide suggested messages
+                document.getElementById('suggestedMessages').style.display = 'none';
+                
+                // Simulate AI response
+                setTimeout(() => {
+                    addMessage('I can help you analyze that! Let me pull up the latest data for those rates...', 'ai');
+                }, 1000);
+            }
+        }
+
+        function sendSuggestedMessage(element) {
+            const message = element.textContent;
+            addMessage(message, 'user');
+            
+            // Hide suggested messages
+            document.getElementById('suggestedMessages').style.display = 'none';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                addMessage('Here\'s the analysis you requested. Let me show you the trends...', 'ai');
+            }, 1000);
+        }
+
+        function addMessage(text, type) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+            
+            messageDiv.appendChild(bubbleDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Enter key in chat
+        document.getElementById('mainChatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
@@ -1311,71 +1540,18 @@
             }
         });
 
-        // Scroll to chat
-        function scrollToChat() {
-            document.getElementById('chatSection').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Hide floating chat when main chat is visible
-        function checkChatVisibility() {
-            const chatSection = document.getElementById('chatSection');
-            const floatingChat = document.getElementById('floatingChat');
-            const rect = chatSection.getBoundingClientRect();
-            
-            if (rect.top < window.innerHeight && rect.bottom > 0) {
-                floatingChat.classList.add('hidden');
-            } else {
-                floatingChat.classList.remove('hidden');
-            }
-        }
-
         // Show alerts section for subscribers (demo)
         function showAlertsForSubscribers() {
-            // This would be controlled by user subscription status
-            // For demo, show after 3 seconds
             setTimeout(() => {
-                document.getElementById('alertsSection').style.display = 'block';
+                document.getElementById('alertsCard').style.display = 'block';
+                document.querySelector('[data-target="alertsCard"]').style.display = 'block';
             }, 3000);
         }
 
-        // Chat functionality
-        function sendMessage() {
-            const input = document.getElementById('mainChatInput');
-            const message = input.value.trim();
-            
-            if (message) {
-                // Add user message to chat
-                const chatMessages = document.getElementById('chatMessages');
-                const userMessage = document.createElement('div');
-                userMessage.style.cssText = 'background: var(--accent-color); color: var(--bg-primary); padding: 12px 16px; border-radius: 18px; margin-bottom: 12px; max-width: 80%; margin-left: auto; text-align: right;';
-                userMessage.textContent = message;
-                chatMessages.appendChild(userMessage);
-                
-                // Simulate AI response
-                setTimeout(() => {
-                    const aiResponse = document.createElement('div');
-                    aiResponse.style.cssText = 'background: var(--bg-primary); color: var(--text-primary); padding: 12px 16px; border-radius: 18px; margin-bottom: 12px; max-width: 80%; border: 0.5px solid var(--border-color);';
-                    aiResponse.textContent = 'I can help you analyze that! Let me pull up the latest data for those rates...';
-                    chatMessages.appendChild(aiResponse);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }, 1000);
-                
-                input.value = '';
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
-
-        // Enter key in chat
-        document.getElementById('mainChatInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
         // Event listeners
-        window.addEventListener('scroll', checkChatVisibility);
+        window.addEventListener('scroll', updateActiveTrayItem);
         window.addEventListener('load', () => {
-            checkChatVisibility();
+            updateActiveTrayItem();
             showAlertsForSubscribers();
         });
     </script>
