@@ -5,305 +5,307 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Remittrack - Find the Best Remittance Rates</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f5f5f7;
-            --bg-tertiary: #ebebed;
+            --primary-bg: #ffffff;
+            --secondary-bg: #f5f5f7;
+            --tertiary-bg: #ebebed;
             --text-primary: #1d1d1f;
             --text-secondary: #86868b;
-            --border-color: rgba(0, 0, 0, 0.1);
-            --border-light: rgba(0, 0, 0, 0.05);
+            --border-color: rgba(0, 0, 0, 0.15);
+            --border-light: rgba(0, 0, 0, 0.08);
             --accent-color: #007aff;
             --accent-hover: #0056d6;
             --success-color: #34c759;
             --warning-color: #ff9f0a;
-            --shadow-light: rgba(0, 0, 0, 0.1);
-            --message-bg: #e9ecef;
-            --message-user: #007aff;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --space-2xl: 32px;
+            --space-3xl: 48px;
+            
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 18px;
+            --radius-full: 9999px;
+            
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-xs: 12px;
+            --font-sm: 14px;
+            --font-md: 16px;
+            --font-lg: 20px;
+            --font-xl: 24px;
+            --font-2xl: 32px;
+            --font-3xl: 40px;
+            --font-4xl: 56px;
+            
+            --transition: 150ms ease;
         }
 
         [data-theme="dark"] {
-            --bg-primary: #000000;
-            --bg-secondary: #1c1c1e;
-            --bg-tertiary: #2c2c2e;
+            --primary-bg: #000000;
+            --secondary-bg: #1c1c1e;
+            --tertiary-bg: #2c2c2e;
             --text-primary: #ffffff;
             --text-secondary: #8e8e93;
-            --border-color: rgba(255, 255, 255, 0.2);
-            --border-light: rgba(255, 255, 255, 0.15);
-            --accent-color: #007aff;
-            --accent-hover: #0056d6;
-            --success-color: #34c759;
-            --warning-color: #ff9f0a;
-            --shadow-light: rgba(255, 255, 255, 0.1);
-            --message-bg: #2c2c2e;
-            --message-user: #007aff;
+            --border-color: rgba(255, 255, 255, 0.25);
+            --border-light: rgba(255, 255, 255, 0.18);
+            --shadow-color: rgba(255, 255, 255, 0.1);
+            --accent-color: #0a84ff;
+            --accent-hover: #0066cc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
+            font-family: var(--font-family);
+            font-size: var(--font-md);
+            line-height: 1.5;
             color: var(--text-primary);
-            line-height: 1.47059;
-            letter-spacing: -0.022em;
-            font-size: 17px;
-            overflow-x: hidden;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            background-color: var(--primary-bg);
+            transition: background-color 300ms ease, color 300ms ease;
             padding-bottom: 80px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.2;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 22px;
+            padding: 0 var(--space-xl);
         }
 
         /* Header */
         .header {
-            background: var(--bg-primary);
-            backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 0.5px solid var(--border-light);
             position: sticky;
             top: 0;
-            z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+            z-index: 100;
+            background-color: var(--primary-bg);
+            border-bottom: 1px solid var(--border-light);
+            backdrop-filter: blur(20px);
         }
 
-        .nav {
+        .header-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            min-height: 44px;
+            min-height: 60px;
         }
 
         .logo {
-            font-size: 21px;
+            font-size: var(--font-xl);
             font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.021em;
         }
 
-        .nav-links {
+        .header-actions {
             display: flex;
-            gap: 32px;
             align-items: center;
+            gap: var(--space-lg);
         }
 
-        .nav-link {
-            color: var(--text-primary);
-            text-decoration: none;
-            font-weight: 400;
-            font-size: 17px;
-            transition: opacity 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-            opacity: 0.8;
-        }
-
-        .nav-link:hover {
-            opacity: 1;
-        }
-
-        .account-btn {
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            padding: 8px 16px;
-            border-radius: 18px;
-            text-decoration: none;
-            font-weight: 400;
-            font-size: 17px;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-            border: none;
-            cursor: pointer;
-        }
-
-        .account-btn:hover {
-            opacity: 0.8;
-            transform: translateY(-1px);
-        }
-
-        /* Theme Toggle */
         .theme-toggle {
-            background: var(--bg-secondary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 20px;
-            padding: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
             display: flex;
-            align-items: center;
-            gap: 4px;
+            gap: var(--space-xs);
+            padding: var(--space-xs);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
         }
 
         .theme-option {
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 14px;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-sm);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition);
+            background: none;
+            border: none;
             color: var(--text-secondary);
         }
 
         .theme-option.active {
-            background: var(--text-primary);
-            color: var(--bg-primary);
+            background-color: var(--text-primary);
+            color: var(--primary-bg);
         }
 
-        /* Main Content */
-        .main-content {
-            padding: 56px 0 0;
-        }
-
-        .hero-section {
-            text-align: center;
-            margin-bottom: 80px;
-        }
-
-        .hero-title {
-            font-size: 56px;
-            font-weight: 600;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-lg);
+            font-size: var(--font-md);
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
             color: var(--text-primary);
-            margin-bottom: 24px;
-            letter-spacing: -0.005em;
-            line-height: 1.07143;
+            background: var(--secondary-bg);
         }
 
-        .hero-subtitle {
-            font-size: 21px;
+        .btn:hover {
+            background-color: var(--tertiary-bg);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: var(--radius-full);
+        }
+
+        .btn-account {
+            background-color: var(--text-primary);
+            color: var(--primary-bg);
+            border-color: var(--text-primary);
+            border-radius: var(--radius-xl);
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: var(--space-3xl) 0 var(--space-2xl);
+        }
+
+        .hero h2 {
+            font-size: var(--font-4xl);
+            margin-bottom: var(--space-md);
+        }
+
+        .hero p {
+            font-size: var(--font-lg);
             color: var(--text-secondary);
-            margin-bottom: 48px;
-            font-weight: 400;
-            letter-spacing: 0.011em;
         }
 
-        /* Draggable Cards */
-        .cards-container {
-            display: flex;
-            flex-direction: column;
-            gap: 56px;
-        }
-
+        /* Cards */
         .card {
-            background: var(--bg-primary);
-            border-radius: 18px;
-            padding: 48px 40px;
-            border: 0.5px solid var(--border-light);
-            cursor: grab;
-            transition: all 0.3s ease;
-            position: relative;
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            margin-bottom: var(--space-2xl);
+            transition: box-shadow 300ms ease;
         }
 
         .card:hover {
-            box-shadow: 0 4px 24px var(--shadow-light);
-        }
-
-        .card.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
+            box-shadow: 0 4px 24px var(--shadow-color);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
+            margin-bottom: var(--space-xl);
         }
 
         .card-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.003em;
+            font-size: var(--font-2xl);
         }
 
-        /* Combined Search & Results Card */
-        .search-results-card {
-            background: var(--bg-secondary);
-            border-radius: 18px;
-            padding: 48px 40px;
-            border: 0.5px solid var(--border-light);
-        }
-
-        .search-section {
-            margin-bottom: 40px;
-        }
-
-        .search-form {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 24px;
-            align-items: end;
-            margin-bottom: 32px;
-        }
-
+        /* Form Elements */
         .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            margin-bottom: var(--space-lg);
         }
 
         .form-label {
+            display: block;
+            margin-bottom: var(--space-sm);
             font-weight: 600;
-            color: var(--text-primary);
-            font-size: 17px;
-            letter-spacing: -0.022em;
         }
 
-        /* Currency Switch Button */
+        .form-input {
+            width: 100%;
+            padding: var(--space-md) var(--space-lg);
+            font-size: var(--font-md);
+            color: var(--text-primary);
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            transition: all var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+
+        /* Currency Selector */
+        .currency-selector {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: var(--space-lg);
+            align-items: end;
+            margin-bottom: var(--space-xl);
+        }
+
         .currency-switch {
-            background: var(--bg-primary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 50%;
+            align-self: center;
             width: 44px;
             height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-            font-size: 18px;
+            transition: all var(--transition);
+            font-size: var(--font-lg);
             color: var(--text-primary);
-            align-self: center;
-            margin-top: 25px;
         }
 
         .currency-switch:hover {
-            background: var(--bg-tertiary);
+            background-color: var(--tertiary-bg);
             transform: rotate(180deg);
         }
 
-        /* Custom Select Dropdown */
-        .custom-select {
+        /* Select Dropdown */
+        .select {
             position: relative;
-            cursor: pointer;
         }
 
         .select-display {
-            padding: 12px 16px;
-            background: var(--bg-primary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 17px;
-            color: var(--text-primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+            padding: var(--space-md) var(--space-lg);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition);
             min-height: 44px;
+            color: var(--text-primary);
         }
 
         .select-display:hover {
-            border-color: var(--border-color);
-            background: var(--bg-tertiary);
-        }
-
-        .select-display.active {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+            background-color: var(--tertiary-bg);
         }
 
         .select-arrow {
@@ -312,7 +314,7 @@
             border-right: 2px solid var(--text-secondary);
             border-bottom: 2px solid var(--text-secondary);
             transform: rotate(45deg);
-            transition: transform 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+            transition: transform var(--transition);
         }
 
         .select-display.active .select-arrow {
@@ -321,21 +323,20 @@
 
         .select-dropdown {
             position: absolute;
-            top: 100%;
+            top: calc(100% + var(--space-sm));
             left: 0;
             right: 0;
-            background: var(--bg-primary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 4px 24px var(--shadow-light);
-            z-index: 1000;
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 32px var(--shadow-color);
+            max-height: 240px;
+            overflow-y: auto;
             opacity: 0;
             visibility: hidden;
             transform: translateY(-8px);
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-            max-height: 240px;
-            overflow-y: auto;
-            margin-top: 4px;
+            transition: all var(--transition);
+            z-index: 200;
         }
 
         .select-dropdown.active {
@@ -345,498 +346,312 @@
         }
 
         .select-option {
-            padding: 12px 16px;
+            padding: var(--space-md) var(--space-lg);
             cursor: pointer;
-            transition: background-color 0.2s cubic-bezier(0.28, 0.11, 0.32, 1);
-            font-size: 17px;
+            transition: background-color var(--transition);
             color: var(--text-primary);
         }
 
         .select-option:hover {
-            background: var(--bg-secondary);
+            background-color: var(--secondary-bg);
         }
 
         .select-option.selected {
-            background: var(--accent-color);
-            color: var(--bg-primary);
+            background-color: var(--accent-color);
+            color: white;
         }
 
-        /* Priority Buttons */
-        .priority-section {
-            margin-bottom: 32px;
+        /* Priority Toggle */
+        .priority-toggle {
+            margin-bottom: var(--space-xl);
         }
 
         .priority-buttons {
             display: flex;
-            gap: 12px;
-            background: var(--bg-primary);
-            border-radius: 12px;
-            padding: 4px;
-            border: 0.5px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xs);
         }
 
         .priority-btn {
             flex: 1;
-            padding: 8px 16px;
+            padding: var(--space-sm) var(--space-lg);
+            background: none;
             border: none;
-            border-radius: 8px;
-            background: transparent;
+            border-radius: var(--radius-md);
             color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
             font-weight: 500;
-            font-size: 17px;
+            cursor: pointer;
+            transition: all var(--transition);
         }
 
         .priority-btn.active {
-            background: var(--text-primary);
-            color: var(--bg-primary);
+            background-color: var(--text-primary);
+            color: var(--primary-bg);
         }
 
-        .priority-btn:hover:not(.active) {
-            color: var(--text-primary);
-        }
-
-        /* Results Table - Mobile Optimized */
-        .results-table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 32px;
-        }
-
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-
-        .results-table th {
-            background: var(--bg-primary);
-            padding: 16px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
-            border-bottom: 0.5px solid var(--border-color);
-            font-size: 17px;
-            white-space: nowrap;
-        }
-
-        .results-table td {
-            padding: 16px 12px;
-            border-bottom: 0.5px solid var(--border-light);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .results-table tr:hover {
-            background: var(--bg-primary);
-        }
-
-        /* Mobile Card Layout for Results */
-        .results-cards {
-            display: none;
-        }
-
-        .result-card-mobile {
-            background: var(--bg-primary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .result-card-mobile:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .mobile-card-header {
+        /* Alert Button */
+        .alert-section {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            margin: var(--space-2xl) 0;
+            padding-top: var(--space-2xl);
+            border-top: 1px solid var(--border-light);
+        }
+
+        .alert-btn {
+            display: flex;
             align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .mobile-card-details {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            font-size: 14px;
-        }
-
-        .mobile-detail-item {
-            text-align: center;
-        }
-
-        .mobile-detail-label {
-            color: var(--text-secondary);
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .mobile-detail-value {
-            color: var(--text-primary);
+            gap: var(--space-md);
+            padding: var(--space-md) var(--space-xl);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
             font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-primary);
         }
 
-        .provider-cell {
+        .alert-btn:hover {
+            background-color: var(--tertiary-bg);
+            transform: translateY(-1px);
+        }
+
+        /* Table */
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 var(--space-sm);
+        }
+
+        .table-header {
+            font-weight: 600;
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: var(--space-lg) var(--space-md);
+            text-align: left;
+        }
+
+        .table-row {
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .table-row:hover {
+            background-color: var(--tertiary-bg);
+            transform: translateY(-1px);
+        }
+
+        .table-cell {
+            padding: var(--space-lg) var(--space-md);
+            text-align: left;
+        }
+
+        .table-row td:first-child {
+            border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        }
+
+        .table-row td:last-child {
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+        }
+
+        /* Table Row Actions */
+        .table-row-actions {
+            display: none;
+            margin-top: var(--space-lg);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--border-light);
+        }
+
+        .table-row-actions.active {
+            display: block;
+            animation: slideDown 300ms ease;
+        }
+
+        @keyframes slideDown {
+            from { 
+                opacity: 0; 
+                transform: translateY(-10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .table-actions {
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .table-action {
+            flex: 1;
+            padding: var(--space-sm) var(--space-md);
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: var(--font-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-primary);
+        }
+
+        .table-action:hover {
+            background-color: var(--tertiary-bg);
+            transform: translateY(-1px);
+        }
+
+        .table-action.primary {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .table-action.primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        /* Provider */
+        .provider {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-md);
         }
 
         .provider-logo {
             width: 32px;
             height: 32px;
-            border-radius: 6px;
-            background: var(--text-primary);
-            color: var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
+            background-color: var(--text-primary);
+            color: var(--primary-bg);
+            border-radius: var(--radius-sm);
             font-weight: 600;
-            font-size: 12px;
+            font-size: var(--font-xs);
         }
 
-        .rate-value {
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-xs);
             font-weight: 600;
-            color: var(--text-primary);
+            text-transform: uppercase;
         }
 
-        /* Expanded Card */
-        .expanded-card {
-            background: var(--bg-primary);
-            border-radius: 12px;
-            padding: 24px;
-            margin-top: 16px;
-            border: 0.5px solid var(--border-color);
-            display: none;
-        }
-
-        .expanded-card.active {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .expanded-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .expanded-card-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .close-card {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 20px;
-            padding: 4px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-
-        .close-card:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .card-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        .detail-item {
-            text-align: center;
-        }
-
-        .detail-label {
-            color: var(--text-secondary);
-            font-size: 13px;
-            margin-bottom: 4px;
-            font-weight: 400;
-        }
-
-        .detail-value {
-            color: var(--text-primary);
-            font-weight: 500;
-            font-size: 17px;
-        }
-
-        .card-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .card-action {
-            flex: 1;
-            background: var(--bg-secondary);
-            border: 0.5px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 400;
-            font-size: 17px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
-        }
-
-        .card-action:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .card-action.primary {
-            background: var(--accent-color);
-            color: var(--bg-primary);
-        }
-
-        .card-action.primary:hover {
-            background: var(--accent-hover);
-        }
-
-        /* Alerts Section */
-        .alerts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
-        }
-
-        .alert-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 24px;
-            border: 0.5px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .alert-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 24px var(--shadow-light);
-        }
-
-        .alert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-
-        .alert-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .alert-status {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .alert-status.active {
-            background: var(--success-color);
+        .badge-active {
+            background-color: var(--success-color);
             color: white;
         }
 
-        .alert-status.hit {
-            background: var(--warning-color);
+        .badge-hit {
+            background-color: var(--warning-color);
             color: white;
         }
 
-        .alert-target {
-            color: var(--text-secondary);
-            font-size: 15px;
-            margin-bottom: 16px;
-        }
-
-        /* Demo Chart */
-        .demo-chart {
-            height: 60px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-            margin-bottom: 16px;
-            position: relative;
-            padding: 8px;
-            border: 0.5px solid var(--border-color);
-        }
-
-        .chart-line {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            right: 8px;
-            bottom: 8px;
-        }
-
-        .chart-line svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .chart-path {
-            fill: none;
-            stroke: var(--accent-color);
-            stroke-width: 2;
-            opacity: 0.8;
-        }
-
-        .chart-area {
-            fill: var(--accent-color);
-            opacity: 0.1;
-        }
-
-        .alert-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .alert-action {
-            flex: 1;
-            padding: 8px 12px;
-            border: 0.5px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
-        }
-
-        .alert-action:hover {
-            background: var(--bg-tertiary);
-        }
-
-        /* Chat Section */
-        .chat-container {
-            background: var(--bg-secondary);
-            border-radius: 12px;
+        /* Chat */
+        .chat {
             display: flex;
             flex-direction: column;
-            border: 0.5px solid var(--border-color);
-            resize: vertical;
-            min-height: 400px;
-            max-height: 800px;
+            height: 500px;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
             overflow: hidden;
         }
 
         .chat-messages {
             flex: 1;
-            padding: 24px;
+            padding: var(--space-xl);
             overflow-y: auto;
-            min-height: 300px;
         }
 
         .chat-welcome {
             text-align: center;
             color: var(--text-secondary);
-            font-size: 17px;
-            margin-top: 80px;
-            margin-bottom: 24px;
+            margin: var(--space-3xl) 0 var(--space-xl);
         }
 
-        .suggested-messages {
+        .chat-suggestions {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: var(--space-sm);
             justify-content: center;
-            margin-bottom: 24px;
         }
 
-        .suggested-message {
-            background: var(--bg-primary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 18px;
-            padding: 8px 16px;
+        .chat-suggestion {
+            padding: var(--space-sm) var(--space-lg);
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            font-size: var(--font-sm);
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 15px;
+            transition: all var(--transition);
             color: var(--text-primary);
         }
 
-        .suggested-message:hover {
-            background: var(--bg-tertiary);
+        .chat-suggestion:hover {
+            background-color: var(--tertiary-bg);
         }
 
-        .message {
-            margin-bottom: 12px;
+        .chat-message {
             display: flex;
-            align-items: flex-end;
+            margin-bottom: var(--space-md);
         }
 
-        .message.user {
+        .chat-message.user {
             justify-content: flex-end;
         }
 
-        .message-bubble {
+        .chat-bubble {
             max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 16px;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-xl);
             line-height: 1.4;
         }
 
-        .message.user .message-bubble {
-            background: var(--message-user);
+        .chat-message.user .chat-bubble {
+            background-color: var(--accent-color);
             color: white;
-            border-bottom-right-radius: 6px;
+            border-bottom-right-radius: var(--radius-sm);
         }
 
-        .message.ai .message-bubble {
-            background: var(--message-bg);
+        .chat-message.ai .chat-bubble {
+            background-color: var(--tertiary-bg);
             color: var(--text-primary);
-            border-bottom-left-radius: 6px;
-        }
-
-        .message-time {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin: 4px 8px;
+            border-bottom-left-radius: var(--radius-sm);
         }
 
         .chat-input-area {
-            padding: 20px;
-            border-top: 0.5px solid var(--border-color);
-            background: var(--bg-primary);
+            padding: var(--space-lg);
+            border-top: 1px solid var(--border-light);
+            background-color: var(--primary-bg);
         }
 
         .chat-input-container {
             display: flex;
-            gap: 12px;
-            align-items: center;
+            gap: var(--space-md);
         }
 
         .chat-input {
             flex: 1;
-            padding: 12px 16px;
-            border: 0.5px solid var(--border-color);
-            border-radius: 18px;
-            background: var(--bg-secondary);
+            padding: var(--space-md) var(--space-lg);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
             color: var(--text-primary);
-            font-size: 17px;
-            transition: all 0.3s ease;
+            transition: all var(--transition);
         }
 
         .chat-input:focus {
@@ -845,174 +660,245 @@
             box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
         }
 
-        .chat-send {
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 18px;
-        }
-
-        .chat-send:hover {
-            background: var(--accent-hover);
-        }
-
-        .chat-send:disabled {
-            background: var(--text-secondary);
-            cursor: not-allowed;
-        }
-
-        /* Resize Handle */
-        .resize-handle {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(-45deg, transparent 6px, var(--border-color) 6px, var(--border-color) 8px, transparent 8px),
-                        linear-gradient(-45deg, transparent 10px, var(--border-color) 10px, var(--border-color) 12px, transparent 12px),
-                        linear-gradient(-45deg, transparent 14px, var(--border-color) 14px, var(--border-color) 16px, transparent 16px);
-            cursor: nw-resize;
-            border-radius: 0 0 12px 0;
-        }
-
-        /* Bottom Tray */
-        .bottom-tray {
+        /* Bottom Navigation */
+        .bottom-nav {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--bg-primary);
-            border-top: 0.5px solid var(--border-color);
-            padding: 12px 0;
-            z-index: 1000;
+            background-color: var(--primary-bg);
+            border-top: 1px solid var(--border-color);
+            padding: var(--space-md) 0;
+            z-index: 400;
         }
 
-        .tray-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 22px;
+        .bottom-nav-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 16px;
+            gap: var(--space-lg);
         }
 
-        .tray-items {
+        .bottom-nav-items {
             display: flex;
-            gap: 16px;
-            align-items: center;
+            gap: var(--space-lg);
         }
 
-        .tray-item {
-            background: var(--bg-secondary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px 16px;
+        .bottom-nav-item {
+            padding: var(--space-sm) var(--space-lg);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: var(--font-sm);
             cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-            font-size: 14px;
+            transition: all var(--transition);
             color: var(--text-primary);
         }
 
-        .tray-item:hover {
-            background: var(--bg-tertiary);
+        .bottom-nav-item:hover {
+            background-color: var(--tertiary-bg);
         }
 
-        .tray-item.active {
-            background: var(--accent-color);
+        .bottom-nav-item.active {
+            background-color: var(--accent-color);
             color: white;
+            border-color: var(--accent-color);
         }
 
-        .settings-btn {
-            background: var(--bg-secondary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 50%;
+        .bottom-nav-settings {
             width: 36px;
             height: 36px;
-            cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
             color: var(--text-primary);
-            font-size: 16px;
         }
 
-        .settings-btn:hover {
-            background: var(--bg-tertiary);
+        .bottom-nav-settings:hover {
+            background-color: var(--tertiary-bg);
         }
 
-        /* Settings Modal */
-        .settings-modal {
+        /* Modal */
+        .modal {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-            display: none;
+            background-color: rgba(0, 0, 0, 0.5);
             align-items: center;
             justify-content: center;
+            z-index: 300;
         }
 
-        .settings-content {
-            background: var(--bg-primary);
-            border-radius: 16px;
-            padding: 24px;
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--primary-bg);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
             max-width: 400px;
             width: 90%;
-            border: 0.5px solid var(--border-color);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px var(--shadow-color);
         }
 
-        .settings-header {
+        .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: var(--space-xl);
         }
 
-        .settings-title {
-            font-size: 20px;
-            font-weight: 600;
+        .modal-title {
+            font-size: var(--font-lg);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: var(--font-lg);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .modal-close:hover {
+            background-color: var(--secondary-bg);
             color: var(--text-primary);
         }
 
-        .settings-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 20px;
-            padding: 4px;
+        .modal-actions {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: flex-end;
+            margin-top: var(--space-xl);
         }
 
+        /* Mobile Cards */
+        .mobile-cards {
+            display: none;
+        }
+
+        .mobile-card {
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .mobile-card:hover {
+            background-color: var(--tertiary-bg);
+        }
+
+        .mobile-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .mobile-card-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-md);
+            text-align: center;
+        }
+
+        .mobile-card-label {
+            font-size: var(--font-xs);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .mobile-card-value {
+            font-weight: 500;
+        }
+
+        .mobile-card-expanded {
+            display: none;
+            margin-top: var(--space-lg);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--border-light);
+        }
+
+        .mobile-card-expanded.active {
+            display: block;
+        }
+
+        .mobile-card-actions {
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .mobile-card-action {
+            flex: 1;
+            padding: var(--space-sm) var(--space-md);
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: var(--font-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-primary);
+        }
+
+        .mobile-card-action:hover {
+            background-color: var(--tertiary-bg);
+            transform: translateY(-1px);
+        }
+
+        .mobile-card-action.primary {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .mobile-card-action.primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        /* Settings */
         .settings-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: var(--space-sm);
         }
 
         .settings-item {
-            background: var(--bg-secondary);
-            border: 0.5px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            cursor: grab;
-            transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-md);
+            padding: var(--space-md) var(--space-lg);
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: grab;
+            transition: all var(--transition);
         }
 
         .settings-item:hover {
-            background: var(--bg-tertiary);
+            background-color: var(--tertiary-bg);
         }
 
         .settings-item.dragging {
@@ -1020,709 +906,792 @@
             cursor: grabbing;
         }
 
-        .settings-item-icon {
-            font-size: 16px;
+        .settings-icon {
+            font-size: var(--font-lg);
+        }
+
+        .settings-name {
+            flex: 1;
+        }
+
+        .settings-handle {
             color: var(--text-secondary);
         }
 
-        .settings-item-text {
-            flex: 1;
-            color: var(--text-primary);
-            font-weight: 500;
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
         }
 
-        /* Responsive Design */
+        .font-bold {
+            font-weight: 600;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
             .container {
-                padding: 0 16px;
+                padding: 0 var(--space-lg);
             }
 
-            .hero-title {
-                font-size: 40px;
+            .hero h2 {
+                font-size: var(--font-3xl);
             }
 
-            .hero-subtitle {
-                font-size: 19px;
-            }
-
-            .search-form {
+            .currency-selector {
                 grid-template-columns: 1fr;
+                gap: var(--space-md);
             }
 
             .currency-switch {
                 order: 2;
-                margin: 16px auto;
+                margin: 0 auto;
             }
 
-            .card {
-                padding: 32px 24px;
-            }
-
-            .card-title {
-                font-size: 24px;
-            }
-
-            .card-details {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .nav-links {
+            .table {
                 display: none;
             }
 
-            .alerts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .tray-container {
-                padding: 0 16px;
-            }
-
-            /* Hide table, show cards on mobile */
-            .results-table-container {
-                display: none;
-            }
-
-            .results-cards {
+            .mobile-cards {
                 display: block;
             }
-
-            /* Stack priority buttons vertically on very small screens */
-            @media (max-width: 480px) {
-                .priority-buttons {
-                    flex-direction: column;
-                }
-
-                .priority-btn {
-                    padding: 12px 16px;
-                }
-            }
-        }
-
-        /* Smooth scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--text-secondary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-primary);
         }
     </style>
 </head>
 <body>
-    <div class="header">
+    <header class="header">
         <div class="container">
-            <nav class="nav">
-                <div class="logo">Remittrack</div>
-                <div class="nav-links">
-                    <a href="#" class="nav-link">Rates</a>
-                    <a href="#" class="nav-link">Analytics</a>
-                    <a href="#" class="nav-link">Alerts</a>
+            <nav class="header-nav">
+                <h1 class="logo">Remittrack</h1>
+                <div class="header-actions">
                     <div class="theme-toggle">
-                        <div class="theme-option active" data-theme="light">☀️</div>
-                        <div class="theme-option" data-theme="dark">🌙</div>
+                        <button class="theme-option active" data-theme="light">☀️</button>
+                        <button class="theme-option" data-theme="dark">🌙</button>
                     </div>
-                    <a href="#" class="account-btn">Sign In</a>
+                    <a href="#" class="btn btn-account">Sign In</a>
                 </div>
             </nav>
         </div>
-    </div>
+    </header>
 
-    <div class="container">
-        <div class="main-content">
-            <div class="hero-section">
-                <h1 class="hero-title">Find the Best Remittance Rates</h1>
-                <p class="hero-subtitle">Compare real-time rates across all major platforms</p>
+    <main class="container">
+        <section class="hero">
+            <h2>Find the Best Remittance Rates</h2>
+            <p>Compare real-time rates across all major platforms</p>
+        </section>
+
+        <article class="card" id="rates-card">
+            <header class="card-header">
+                <h3 class="card-title">Rate Comparison</h3>
+            </header>
+
+            <div class="currency-selector">
+                <div class="form-group">
+                    <label class="form-label">From</label>
+                    <div class="select" data-value="USD">
+                        <div class="select-display">
+                            <span>USD - United States Dollar</span>
+                            <div class="select-arrow"></div>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-option selected" data-value="USD">USD - United States Dollar</div>
+                            <div class="select-option" data-value="EUR">EUR - Euro</div>
+                            <div class="select-option" data-value="GBP">GBP - British Pound</div>
+                            <div class="select-option" data-value="CAD">CAD - Canadian Dollar</div>
+                            <div class="select-option" data-value="AUD">AUD - Australian Dollar</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="currency-switch" onclick="switchCurrencies()">⇄</button>
+
+                <div class="form-group">
+                    <label class="form-label">To</label>
+                    <div class="select" data-value="NGN">
+                        <div class="select-display">
+                            <span>NGN - Nigerian Naira</span>
+                            <div class="select-arrow"></div>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-option selected" data-value="NGN">NGN - Nigerian Naira</div>
+                            <div class="select-option" data-value="KES">KES - Kenyan Shilling</div>
+                            <div class="select-option" data-value="GHS">GHS - Ghanaian Cedi</div>
+                            <div class="select-option" data-value="INR">INR - Indian Rupee</div>
+                            <div class="select-option" data-value="PKR">PKR - Pakistani Rupee</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="cards-container" id="cardsContainer">
-                <!-- Search & Results Card -->
-                <div class="card" data-card="search-results" id="searchResultsCard">
-                    <div class="card-header">
-                        <h2 class="card-title">Rate Comparison</h2>
-                    </div>
-                    
-                    <div class="search-section">
-                        <form class="search-form">
-                            <div class="form-group">
-                                <label class="form-label">From</label>
-                                <div class="custom-select" data-value="USD" id="fromCurrency">
-                                    <div class="select-display">
-                                        <span>USD - United States Dollar</span>
-                                        <div class="select-arrow"></div>
-                                    </div>
-                                    <div class="select-dropdown">
-                                        <div class="select-option selected" data-value="USD">USD - United States Dollar</div>
-                                        <div class="select-option" data-value="EUR">EUR - Euro</div>
-                                        <div class="select-option" data-value="GBP">GBP - British Pound</div>
-                                        <div class="select-option" data-value="CAD">CAD - Canadian Dollar</div>
-                                        <div class="select-option" data-value="AUD">AUD - Australian Dollar</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="currency-switch" onclick="switchCurrencies()">
-                                ⇄
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">To</label>
-                                <div class="custom-select" data-value="NGN" id="toCurrency">
-                                    <div class="select-display">
-                                        <span>NGN - Nigerian Naira</span>
-                                        <div class="select-arrow"></div>
-                                    </div>
-                                    <div class="select-dropdown">
-                                        <div class="select-option selected" data-value="NGN">NGN - Nigerian Naira</div>
-                                        <div class="select-option" data-value="KES">KES - Kenyan Shilling</div>
-                                        <div class="select-option" data-value="GHS">GHS - Ghanaian Cedi</div>
-                                        <div class="select-option" data-value="INR">INR - Indian Rupee</div>
-                                        <div class="select-option" data-value="PKR">PKR - Pakistani Rupee</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                        
-                        <div class="priority-section">
-                            <label class="form-label">Priority</label>
-                            <div class="priority-buttons">
-                                <button class="priority-btn active" data-priority="cheapest">Cheapest</button>
-                                <button class="priority-btn" data-priority="fastest">Fastest</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Desktop Table View -->
-                    <div class="results-table-container">
-                        <table class="results-table">
-                            <thead>
-                                <tr>
-                                    <th>Provider</th>
-                                    <th>Rate</th>
-                                    <th>Fees</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr onclick="toggleCard(this)" data-provider="western-union">
-                                    <td>
-                                        <div class="provider-cell">
-                                            <div class="provider-logo">WU</div>
-                                            <div>Western Union</div>
-                                        </div>
-                                    </td>
-                                    <td class="rate-value">₦1,547.50</td>
-                                    <td>$4.99</td>
-                                    <td>$504.99</td>
-                                </tr>
-                                <tr onclick="toggleCard(this)" data-provider="remitly">
-                                    <td>
-                                        <div class="provider-cell">
-                                            <div class="provider-logo">RM</div>
-                                            <div>Remitly</div>
-                                        </div>
-                                    </td>
-                                    <td class="rate-value">₦1,545.20</td>
-                                    <td>$6.99</td>
-                                    <td>$506.99</td>
-                                </tr>
-                                <tr onclick="toggleCard(this)" data-provider="worldremit">
-                                    <td>
-                                        <div class="provider-cell">
-                                            <div class="provider-logo">WW</div>
-                                            <div>WorldRemit</div>
-                                        </div>
-                                    </td>
-                                    <td class="rate-value">₦1,542.80</td>
-                                    <td>$3.99</td>
-                                    <td>$503.99</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="priority-toggle">
+                <label class="form-label">Priority</label>
+                <div class="priority-buttons">
+                    <button class="priority-btn active" data-priority="cheapest">Cheapest</button>
+                    <button class="priority-btn" data-priority="fastest">Fastest</button>
+                </div>
+            </div>
 
-                    <!-- Mobile Card View -->
-                    <div class="results-cards">
-                        <div class="result-card-mobile" onclick="toggleCard(this)" data-provider="western-union">
-                            <div class="mobile-card-header">
-                                <div class="provider-cell">
-                                    <div class="provider-logo">WU</div>
-                                    <div>Western Union</div>
-                                </div>
-                                <div class="rate-value">₦1,547.50</div>
-                            </div>
-                            <div class="mobile-card-details">
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Fees</div>
-                                    <div class="mobile-detail-value">$4.99</div>
-                                </div>
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Total</div>
-                                    <div class="mobile-detail-value">$504.99</div>
-                                </div>
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Speed</div>
-                                    <div class="mobile-detail-value">1-2 days</div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="alert-section">
+                <button class="alert-btn" onclick="openModal('alert-modal')">
+                    <span>🔔</span>
+                    <span>Set Alert for USD to NGN</span>
+                </button>
+            </div>
 
-                        <div class="result-card-mobile" onclick="toggleCard(this)" data-provider="remitly">
-                            <div class="mobile-card-header">
-                                <div class="provider-cell">
-                                    <div class="provider-logo">RM</div>
-                                    <div>Remitly</div>
-                                </div>
-                                <div class="rate-value">₦1,545.20</div>
-                            </div>
-                            <div class="mobile-card-details">
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Fees</div>
-                                    <div class="mobile-detail-value">$6.99</div>
-                                </div>
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Total</div>
-                                    <div class="mobile-detail-value">$506.99</div>
-                                </div>
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Speed</div>
-                                    <div class="mobile-detail-value">Minutes</div>
-                                </div>
-                            </div>
-                        </div>
+            <table class="table" id="rates-table">
+                <thead>
+                    <tr>
+                        <th class="table-header">Provider</th>
+                        <th class="table-header">Rate</th>
+                        <th class="table-header">Fees</th>
+                        <th class="table-header">Speed</th>
+                    </tr>
+                </thead>
+                <tbody id="rates-tbody"></tbody>
+            </table>
 
-                        <div class="result-card-mobile" onclick="toggleCard(this)" data-provider="worldremit">
-                            <div class="mobile-card-header">
-                                <div class="provider-cell">
-                                    <div class="provider-logo">WW</div>
-                                    <div>WorldRemit</div>
-                                </div>
-                                <div class="rate-value">₦1,542.80</div>
-                            </div>
-                            <div class="mobile-card-details">
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Fees</div>
-                                    <div class="mobile-detail-value">$3.99</div>
-                                </div>
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Total</div>
-                                    <div class="mobile-detail-value">$503.99</div>
-                                </div>
-                                <div class="mobile-detail-item">
-                                    <div class="mobile-detail-label">Speed</div>
-                                    <div class="mobile-detail-value">1-3 days</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Expanded Cards -->
-                    <div class="expanded-card" id="western-union-card">
-                        <div class="expanded-card-header">
-                            <h3 class="expanded-card-title">Western Union - Bank Transfer</h3>
-                            <button class="close-card" onclick="closeCard('western-union-card')">×</button>
-                        </div>
-                        <div class="card-details">
-                            <div class="detail-item">
-                                <div class="detail-label">Exchange Rate</div>
-                                <div class="detail-value">₦1,547.50</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Fees</div>
-                                <div class="detail-value">$4.99</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Speed</div>
-                                <div class="detail-value">1-2 days</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Rating</div>
-                                <div class="detail-value">4.2/5</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Total Cost</div>
-                                <div class="detail-value">$504.99</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <button class="card-action">Set Alert</button>
-                            <button class="card-action primary">Send Money</button>
-                        </div>
-                    </div>
-                    
-                    <div class="expanded-card" id="remitly-card">
-                        <div class="expanded-card-header">
-                            <h3 class="expanded-card-title">Remitly - Express</h3>
-                            <button class="close-card" onclick="closeCard('remitly-card')">×</button>
-                        </div>
-                        <div class="card-details">
-                            <div class="detail-item">
-                                <div class="detail-label">Exchange Rate</div>
-                                <div class="detail-value">₦1,545.20</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Fees</div>
-                                <div class="detail-value">$6.99</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Speed</div>
-                                <div class="detail-value">Minutes</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Rating</div>
-                                <div class="detail-value">4.6/5</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Total Cost</div>
-                                <div class="detail-value">$506.99</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <button class="card-action">Set Alert</button>
-                            <button class="card-action primary">Send Money</button>
-                        </div>
-                    </div>
-                    
-                    <div class="expanded-card" id="worldremit-card">
-                        <div class="expanded-card-header">
-                            <h3 class="expanded-card-title">WorldRemit - Bank Transfer</h3>
-                            <button class="close-card" onclick="closeCard('worldremit-card')">×</button>
-                        </div>
-                        <div class="card-details">
-                            <div class="detail-item">
-                                <div class="detail-label">Exchange Rate</div>
-                                <div class="detail-value">₦1,542.80</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Fees</div>
-                                <div class="detail-value">$3.99</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Speed</div>
-                                <div class="detail-value">1-3 days</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Rating</div>
-                                <div class="detail-value">4.1/5</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Total Cost</div>
-                                <div class="detail-value">$503.99</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <button class="card-action">Set Alert</button>
-                            <button class="card-action primary">Send Money</button>
-                        </div>
+            <div class="mobile-cards" id="rates-mobile"></div>
+        </article>
+
+        <article class="card" id="alerts-card">
+            <header class="card-header">
+                <h3 class="card-title">Your Rate Alerts</h3>
+                <button class="btn btn-primary btn-icon" onclick="openModal('alert-modal')">+</button>
+            </header>
+
+            <table class="table" id="alerts-table">
+                <thead>
+                    <tr>
+                        <th class="table-header">Currency Pair</th>
+                        <th class="table-header">Target Rate</th>
+                        <th class="table-header">Status</th>
+                        <th class="table-header">Created</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-tbody"></tbody>
+            </table>
+
+            <div class="mobile-cards" id="alerts-mobile"></div>
+        </article>
+
+        <article class="card" id="chat-card">
+            <header class="card-header">
+                <h3 class="card-title">Remit Assistant</h3>
+            </header>
+
+            <div class="chat">
+                <div class="chat-messages" id="chat-messages">
+                    <p class="chat-welcome">Ask me anything about remittance rates and trends</p>
+                    <div class="chat-suggestions" id="chat-suggestions">
+                        <button class="chat-suggestion" onclick="sendMessage('USD to NGN trend last month')">USD to NGN trend last month</button>
+                        <button class="chat-suggestion" onclick="sendMessage('Best day to send to Nigeria')">Best day to send to Nigeria</button>
+                        <button class="chat-suggestion" onclick="sendMessage('Compare Western Union vs Remitly')">Compare Western Union vs Remitly</button>
                     </div>
                 </div>
 
-                <!-- Alerts Card (Only visible for subscribers) -->
-                <div class="card" data-card="alerts" id="alertsCard" style="display: none;">
-                    <div class="card-header">
-                        <h2 class="card-title">Your Rate Alerts</h2>
-                    </div>
-                    <div class="alerts-grid">
-                        <div class="alert-card">
-                            <div class="alert-header">
-                                <h3 class="alert-title">USD to NGN</h3>
-                                <span class="alert-status active">Active</span>
-                            </div>
-                            <div class="alert-target">Alert when rate hits ₦1,550 or better</div>
-                            <div class="demo-chart">
-                                <div class="chart-line">
-                                    <svg viewBox="0 0 100 40">
-                                        <defs>
-                                            <linearGradient id="areaGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                <stop offset="0%" style="stop-color:var(--accent-color);stop-opacity:0.3" />
-                                                <stop offset="100%" style="stop-color:var(--accent-color);stop-opacity:0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path class="chart-area" d="M0,35 L10,30 L20,25 L30,20 L40,15 L50,18 L60,22 L70,20 L80,15 L90,12 L100,10 L100,40 L0,40 Z" fill="url(#areaGradient1)"/>
-                                        <path class="chart-path" d="M0,35 L10,30 L20,25 L30,20 L40,15 L50,18 L60,22 L70,20 L80,15 L90,12 L100,10"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="alert-actions">
-                                <button class="alert-action">Edit</button>
-                                <button class="alert-action">Pause</button>
-                                <button class="alert-action">Delete</button>
-                            </div>
-                        </div>
-                        <div class="alert-card">
-                            <div class="alert-header">
-                                <h3 class="alert-title">EUR to KES</h3>
-                                <span class="alert-status hit">Rate Hit!</span>
-                            </div>
-                            <div class="alert-target">Alert when rate hits 120 KES or better</div>
-                            <div class="demo-chart">
-                                <div class="chart-line">
-                                    <svg viewBox="0 0 100 40">
-                                        <defs>
-                                            <linearGradient id="areaGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                <stop offset="0%" style="stop-color:var(--accent-color);stop-opacity:0.3" />
-                                                <stop offset="100%" style="stop-color:var(--accent-color);stop-opacity:0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path class="chart-area" d="M0,30 L10,25 L20,20 L30,18 L40,15 L50,12 L60,10 L70,8 L80,12 L90,15 L100,18 L100,40 L0,40 Z" fill="url(#areaGradient2)"/>
-                                        <path class="chart-path" d="M0,30 L10,25 L20,20 L30,18 L40,15 L50,12 L60,10 L70,8 L80,12 L90,15 L100,18"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="alert-actions">
-                                <button class="alert-action">Edit</button>
-                                <button class="alert-action">Pause</button>
-                                <button class="alert-action">Delete</button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="chat-input-area">
+                    <form class="chat-input-container" onsubmit="handleChatSubmit(event)">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Ask me anything about remittance rates..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary btn-icon">→</button>
+                    </form>
                 </div>
+            </div>
+        </article>
+    </main>
 
-                <!-- Chat Card -->
-                <div class="card" data-card="chat" id="chatCard">
-                    <div class="card-header">
-                        <h2 class="card-title">Remit Assistant</h2>
-                    </div>
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="chat-welcome">
-                                Ask me anything about remittance rates and trends
-                            </div>
-                            <div class="suggested-messages" id="suggestedMessages">
-                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">USD to NGN trend last month</div>
-                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">Best day to send to Nigeria</div>
-                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">Compare Western Union vs Remitly</div>
-                                <div class="suggested-message" onclick="sendSuggestedMessage(this)">Show me rate alerts</div>
-                            </div>
-                        </div>
-                        <div class="chat-input-area">
-                            <div class="chat-input-container">
-                                <input type="text" class="chat-input" placeholder="Ask me anything about remittance rates..." id="mainChatInput">
-                                <button class="chat-send" onclick="sendMessage()" id="sendButton">→</button>
-                            </div>
-                        </div>
-                        <div class="resize-handle"></div>
-                    </div>
+    <nav class="bottom-nav">
+        <div class="container">
+            <div class="bottom-nav-container">
+                <div class="bottom-nav-items" id="bottom-nav-items">
+                    <button class="bottom-nav-item active" onclick="scrollToCard('rates-card')">Rates</button>
+                    <button class="bottom-nav-item" onclick="scrollToCard('alerts-card')">Alerts</button>
+                    <button class="bottom-nav-item" onclick="scrollToCard('chat-card')">Chat</button>
                 </div>
+                <button class="bottom-nav-settings" onclick="openModal('settings-modal')">⚙️</button>
             </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Bottom Tray -->
-    <div class="bottom-tray">
-        <div class="tray-container">
-            <div class="tray-items" id="trayItems">
-                <div class="tray-item active" data-target="searchResultsCard">Rate Comparison</div>
-                <div class="tray-item" data-target="alertsCard" style="display: none;">Rate Alerts</div>
-                <div class="tray-item" data-target="chatCard">Chat Assistant</div>
-            </div>
-            <div class="settings-btn" onclick="openSettings()">⚙️</div>
+    <!-- Alert Modal -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h4 class="modal-title">Add New Alert</h4>
+                <button class="modal-close" onclick="closeModal('alert-modal')">×</button>
+            </header>
+
+            <form onsubmit="createAlert(event)">
+                <div class="form-group">
+                    <label class="form-label">From Currency</label>
+                    <div class="select" data-value="USD">
+                        <div class="select-display">
+                            <span>USD - United States Dollar</span>
+                            <div class="select-arrow"></div>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-option selected" data-value="USD">USD - United States Dollar</div>
+                            <div class="select-option" data-value="EUR">EUR - Euro</div>
+                            <div class="select-option" data-value="GBP">GBP - British Pound</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">To Currency</label>
+                    <div class="select" data-value="NGN">
+                        <div class="select-display">
+                            <span>NGN - Nigerian Naira</span>
+                            <div class="select-arrow"></div>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-option selected" data-value="NGN">NGN - Nigerian Naira</div>
+                            <div class="select-option" data-value="KES">KES - Kenyan Shilling</div>
+                            <div class="select-option" data-value="GHS">GHS - Ghanaian Cedi</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Select Provider (Optional)</label>
+                    <div class="select" data-value="">
+                        <div class="select-display">
+                            <span>Any Provider</span>
+                            <div class="select-arrow"></div>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-option selected" data-value="">Any Provider</div>
+                            <div class="select-option" data-value="western-union">Western Union</div>
+                            <div class="select-option" data-value="remitly">Remitly</div>
+                            <div class="select-option" data-value="worldremit">WorldRemit</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Target Rate</label>
+                    <input type="number" class="form-input" placeholder="e.g., 1550" step="0.01" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeModal('alert-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Alert</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <!-- Settings Modal -->
-    <div class="settings-modal" id="settingsModal">
-        <div class="settings-content">
-            <div class="settings-header">
-                <h3 class="settings-title">Customize Layout</h3>
-                <button class="settings-close" onclick="closeSettings()">×</button>
-            </div>
-            <div class="settings-list" id="settingsList">
-                <div class="settings-item" draggable="true" data-card="search-results">
-                    <div class="settings-item-icon">📊</div>
-                    <div class="settings-item-text">Rate Comparison</div>
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h4 class="modal-title">Settings</h4>
+                <button class="modal-close" onclick="closeModal('settings-modal')">×</button>
+            </header>
+            <p style="margin-bottom: 16px;">Drag to reorder sections:</p>
+            <div class="settings-list" id="settings-list">
+                <div class="settings-item" draggable="true" data-card="rates">
+                    <span class="settings-icon">📊</span>
+                    <span class="settings-name">Rates</span>
+                    <span class="settings-handle">≡</span>
                 </div>
-                <div class="settings-item" draggable="true" data-card="alerts" style="display: none;">
-                    <div class="settings-item-icon">🔔</div>
-                    <div class="settings-item-text">Rate Alerts</div>
+                <div class="settings-item" draggable="true" data-card="alerts">
+                    <span class="settings-icon">🔔</span>
+                    <span class="settings-name">Alerts</span>
+                    <span class="settings-handle">≡</span>
                 </div>
                 <div class="settings-item" draggable="true" data-card="chat">
-                    <div class="settings-item-icon">💬</div>
-                    <div class="settings-item-text">Chat Assistant</div>
+                    <span class="settings-icon">💬</span>
+                    <span class="settings-name">Chat</span>
+                    <span class="settings-handle">≡</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Theme switching
-        document.querySelectorAll('.theme-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const theme = this.getAttribute('data-theme');
-                document.documentElement.setAttribute('data-theme', theme);
-                
-                document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
-                this.classList.add('active');
-                
-                localStorage.setItem('theme', theme);
-            });
+        // App data
+        const providers = [
+            { id: 'western-union', name: 'Western Union', logo: 'WU', rate: '₦1,547.50', fees: '$4.99', speed: '1-2 days' },
+            { id: 'remitly', name: 'Remitly', logo: 'RM', rate: '₦1,545.20', fees: '$6.99', speed: 'Minutes' },
+            { id: 'worldremit', name: 'WorldRemit', logo: 'WR', rate: '₦1,542.80', fees: '$3.99', speed: '1-3 days' }
+        ];
+
+        const alerts = [
+            { id: 1, pair: 'USD to NGN', targetRate: '₦1,550.00', status: 'active', created: '2 days ago' },
+            { id: 2, pair: 'EUR to KES', targetRate: '120.00 KES', status: 'hit', created: '1 week ago' }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            initSelects();
+            initDragAndDrop();
+            initScrollObserver();
+            renderProviders();
+            renderAlerts();
         });
 
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            document.querySelectorAll('.theme-option').forEach(opt => {
-                opt.classList.toggle('active', opt.getAttribute('data-theme') === savedTheme);
+        // Theme management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.addEventListener('click', () => setTheme(btn.dataset.theme));
             });
-        } else {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const theme = prefersDark ? 'dark' : 'light';
+        }
+
+        function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
-            document.querySelectorAll('.theme-option').forEach(opt => {
-                opt.classList.toggle('active', opt.getAttribute('data-theme') === theme);
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+            localStorage.setItem('theme', theme);
+        }
+
+        // Select dropdown functionality
+        function initSelects() {
+            document.querySelectorAll('.select').forEach(select => {
+                const display = select.querySelector('.select-display');
+                const dropdown = select.querySelector('.select-dropdown');
+                const options = select.querySelectorAll('.select-option');
+
+                display.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleSelect(select);
+                });
+
+                options.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectOption(select, option);
+                    });
+                });
+            });
+
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.select').forEach(select => {
+                    select.querySelector('.select-display').classList.remove('active');
+                    select.querySelector('.select-dropdown').classList.remove('active');
+                });
+            });
+
+            // Priority toggle
+            document.querySelectorAll('.priority-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
             });
         }
 
-        // Currency switch functionality
-        function switchCurrencies() {
-            const fromSelect = document.getElementById('fromCurrency');
-            const toSelect = document.getElementById('toCurrency');
-            
-            const fromValue = fromSelect.getAttribute('data-value');
-            const fromText = fromSelect.querySelector('.select-display span').textContent;
-            const toValue = toSelect.getAttribute('data-value');
-            const toText = toSelect.querySelector('.select-display span').textContent;
-            
-            fromSelect.setAttribute('data-value', toValue);
-            fromSelect.querySelector('.select-display span').textContent = toText;
-            toSelect.setAttribute('data-value', fromValue);
-            toSelect.querySelector('.select-display span').textContent = fromText;
-            
-            fromSelect.querySelectorAll('.select-option').forEach(opt => {
-                opt.classList.toggle('selected', opt.getAttribute('data-value') === toValue);
-            });
-            toSelect.querySelectorAll('.select-option').forEach(opt => {
-                opt.classList.toggle('selected', opt.getAttribute('data-value') === fromValue);
-            });
-        }
-
-        // Custom Select Functionality
-        document.querySelectorAll('.custom-select').forEach(select => {
+        function toggleSelect(select) {
             const display = select.querySelector('.select-display');
             const dropdown = select.querySelector('.select-dropdown');
-            const options = select.querySelectorAll('.select-option');
             
-            display.addEventListener('click', () => {
-                document.querySelectorAll('.custom-select').forEach(otherSelect => {
-                    if (otherSelect !== select) {
-                        otherSelect.querySelector('.select-display').classList.remove('active');
-                        otherSelect.querySelector('.select-dropdown').classList.remove('active');
-                    }
+            // Close other selects
+            document.querySelectorAll('.select').forEach(s => {
+                if (s !== select) {
+                    s.querySelector('.select-display').classList.remove('active');
+                    s.querySelector('.select-dropdown').classList.remove('active');
+                }
+            });
+
+            display.classList.toggle('active');
+            dropdown.classList.toggle('active');
+        }
+
+        function selectOption(select, option) {
+            const display = select.querySelector('.select-display');
+            const dropdown = select.querySelector('.select-dropdown');
+            
+            select.dataset.value = option.dataset.value;
+            display.querySelector('span').textContent = option.textContent;
+            
+            select.querySelectorAll('.select-option').forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            
+            display.classList.remove('active');
+            dropdown.classList.remove('active');
+        }
+
+        // Currency switch
+        function switchCurrencies() {
+            const selects = document.querySelectorAll('.currency-selector .select');
+            const fromSelect = selects[0];
+            const toSelect = selects[1];
+            
+            if (fromSelect && toSelect) {
+                const fromValue = fromSelect.dataset.value;
+                const fromText = fromSelect.querySelector('.select-display span').textContent;
+                const toValue = toSelect.dataset.value;
+                const toText = toSelect.querySelector('.select-display span').textContent;
+                
+                // Swap values and text
+                fromSelect.dataset.value = toValue;
+                fromSelect.querySelector('.select-display span').textContent = toText;
+                toSelect.dataset.value = fromValue;
+                toSelect.querySelector('.select-display span').textContent = fromText;
+                
+                // Update selected options
+                fromSelect.querySelectorAll('.select-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.value === toValue);
+                });
+                toSelect.querySelectorAll('.select-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.value === fromValue);
                 });
                 
-                display.classList.toggle('active');
-                dropdown.classList.toggle('active');
+                // Update button text
+                const alertBtn = document.querySelector('.alert-btn span:last-child');
+                if (alertBtn) {
+                    alertBtn.textContent = `Set Alert for ${toValue} to ${fromValue}`;
+                }
+            }
+        }
+
+        // Render providers
+        function renderProviders() {
+            const tbody = document.getElementById('rates-tbody');
+            const mobile = document.getElementById('rates-mobile');
+            
+            tbody.innerHTML = '';
+            mobile.innerHTML = '';
+
+            providers.forEach(provider => {
+                // Desktop table row
+                const row = document.createElement('tr');
+                row.className = 'table-row';
+                row.onclick = () => toggleTableRowActions(provider.id);
+                row.innerHTML = `
+                    <td class="table-cell" colspan="4">
+                        <div style="display: flex; align-items: center;">
+                            <div style="flex: 1;">
+                                <div class="provider">
+                                    <div class="provider-logo">${provider.logo}</div>
+                                    <span>${provider.name}</span>
+                                </div>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <span class="font-bold">${provider.rate}</span>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <span>${provider.fees}</span>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <span>${provider.speed}</span>
+                            </div>
+                        </div>
+                        <div class="table-row-actions" id="table-actions-${provider.id}">
+                            <div class="table-actions">
+                                <button class="table-action">Set Alert</button>
+                                <button class="table-action primary">Send Money</button>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+
+                // Mobile card
+                const card = document.createElement('div');
+                card.className = 'mobile-card';
+                card.onclick = () => toggleMobileCard(provider.id);
+                card.innerHTML = `
+                    <div class="mobile-card-header">
+                        <div class="provider">
+                            <div class="provider-logo">${provider.logo}</div>
+                            <span>${provider.name}</span>
+                        </div>
+                        <span class="font-bold">${provider.rate}</span>
+                    </div>
+                    <div class="mobile-card-details">
+                        <div>
+                            <div class="mobile-card-label">Fees</div>
+                            <div class="mobile-card-value">${provider.fees}</div>
+                        </div>
+                        <div>
+                            <div class="mobile-card-label">Speed</div>
+                            <div class="mobile-card-value">${provider.speed}</div>
+                        </div>
+                        <div>
+                            <div class="mobile-card-label">Rating</div>
+                            <div class="mobile-card-value">4.5/5</div>
+                        </div>
+                    </div>
+                    <div class="mobile-card-expanded" id="mobile-expanded-${provider.id}">
+                        <div class="mobile-card-actions">
+                            <button class="mobile-card-action">Set Alert</button>
+                            <button class="mobile-card-action primary">Send Money</button>
+                        </div>
+                    </div>
+                `;
+                mobile.appendChild(card);
+            });
+        }
+
+        // Render alerts
+        function renderAlerts() {
+            const tbody = document.getElementById('alerts-tbody');
+            const mobile = document.getElementById('alerts-mobile');
+            
+            tbody.innerHTML = '';
+            mobile.innerHTML = '';
+
+            alerts.forEach(alert => {
+                const badgeClass = alert.status === 'active' ? 'badge-active' : 'badge-hit';
+                const badgeText = alert.status === 'active' ? 'Active' : 'Rate Hit!';
+
+                // Desktop table row
+                const row = document.createElement('tr');
+                row.className = 'table-row';
+                row.onclick = () => toggleTableRowActions(`alert-${alert.id}`);
+                row.innerHTML = `
+                    <td class="table-cell" colspan="4">
+                        <div style="display: flex; align-items: center;">
+                            <div style="flex: 1;">
+                                <span>${alert.pair}</span>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <span class="font-bold">${alert.targetRate}</span>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <span class="badge ${badgeClass}">${badgeText}</span>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <span>${alert.created}</span>
+                            </div>
+                        </div>
+                        <div class="table-row-actions" id="table-actions-alert-${alert.id}">
+                            <div class="table-actions">
+                                <button class="table-action">Edit</button>
+                                <button class="table-action">Pause</button>
+                                <button class="table-action">Delete</button>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+
+                // Mobile card
+                const card = document.createElement('div');
+                card.className = 'mobile-card';
+                card.onclick = () => toggleMobileCard(`alert-${alert.id}`);
+                card.innerHTML = `
+                    <div class="mobile-card-header">
+                        <span>${alert.pair}</span>
+                        <span class="badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                    <div class="mobile-card-details">
+                        <div>
+                            <div class="mobile-card-label">Target</div>
+                            <div class="mobile-card-value">${alert.targetRate}</div>
+                        </div>
+                        <div>
+                            <div class="mobile-card-label">Created</div>
+                            <div class="mobile-card-value">${alert.created}</div>
+                        </div>
+                        <div>
+                            <div class="mobile-card-label">Provider</div>
+                            <div class="mobile-card-value">Any</div>
+                        </div>
+                    </div>
+                    <div class="mobile-card-expanded" id="mobile-expanded-alert-${alert.id}">
+                        <div class="mobile-card-actions">
+                            <button class="mobile-card-action">Edit</button>
+                            <button class="mobile-card-action">Pause</button>
+                            <button class="mobile-card-action">Delete</button>
+                        </div>
+                    </div>
+                `;
+                mobile.appendChild(card);
+            });
+        }
+
+        // Toggle table row actions
+        function toggleTableRowActions(id) {
+            const actions = document.getElementById(`table-actions-${id}`);
+            if (actions) {
+                // Close other expanded actions
+                document.querySelectorAll('.table-row-actions.active').forEach(action => {
+                    if (action !== actions) {
+                        action.classList.remove('active');
+                    }
+                });
+                actions.classList.toggle('active');
+            }
+        }
+
+        // Toggle expanded row (kept for backward compatibility)
+        function toggleExpandedRow(id) {
+            toggleTableRowActions(id);
+        }
+
+        // Toggle mobile card
+        function toggleMobileCard(id) {
+            const expandedContent = document.getElementById(`mobile-expanded-${id}`);
+            if (expandedContent) {
+                document.querySelectorAll('.mobile-card-expanded.active').forEach(content => {
+                    if (content !== expandedContent) {
+                        content.classList.remove('active');
+                    }
+                });
+                expandedContent.classList.toggle('active');
+            }
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Navigation
+        function scrollToCard(cardId) {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            updateActiveNavItem(cardId);
+        }
+
+        function initScrollObserver() {
+            window.addEventListener('scroll', updateActiveNavItemOnScroll);
+        }
+
+        function updateActiveNavItem(activeCardId) {
+            const navItems = document.querySelectorAll('.bottom-nav-item');
+            navItems.forEach(item => {
+                const isActive = item.getAttribute('onclick').includes(activeCardId);
+                item.classList.toggle('active', isActive);
+            });
+        }
+
+        function updateActiveNavItemOnScroll() {
+            const cards = document.querySelectorAll('.card');
+            const navItems = document.querySelectorAll('.bottom-nav-item');
+            
+            let activeCard = null;
+            const scrollPosition = window.scrollY + window.innerHeight / 2;
+            
+            cards.forEach(card => {
+                const cardTop = card.offsetTop;
+                const cardBottom = cardTop + card.offsetHeight;
+                
+                if (scrollPosition >= cardTop && scrollPosition <= cardBottom) {
+                    activeCard = card.id;
+                }
             });
             
-            options.forEach(option => {
-                option.addEventListener('click', () => {
-                    const value = option.getAttribute('data-value');
-                    const text = option.textContent;
-                    
-                    options.forEach(opt => opt.classList.remove('selected'));
-                    option.classList.add('selected');
-                    
-                    display.querySelector('span').textContent = text;
-                    select.setAttribute('data-value', value);
-                    
-                    display.classList.remove('active');
-                    dropdown.classList.remove('active');
+            if (activeCard) {
+                navItems.forEach(item => {
+                    const isActive = item.getAttribute('onclick').includes(activeCard);
+                    item.classList.toggle('active', isActive);
+                });
+            }
+        }
+
+        // Chat functions
+        function handleChatSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                sendMessage(message);
+                input.value = '';
+            }
+        }
+
+        function sendMessage(message) {
+            const messagesContainer = document.getElementById('chat-messages');
+            
+            // Hide suggestions after first message
+            const suggestions = document.getElementById('chat-suggestions');
+            if (suggestions) suggestions.style.display = 'none';
+            
+            // Add user message
+            addChatMessage(message, 'user');
+            
+            // Simulate AI response
+            setTimeout(() => {
+                addChatMessage('I can help you with that! Let me analyze the latest rates...', 'ai');
+            }, 1000);
+        }
+
+        function addChatMessage(text, type) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble';
+            bubble.textContent = text;
+            
+            messageDiv.appendChild(bubble);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Alert creation
+        function createAlert(event) {
+            event.preventDefault();
+            const newAlert = {
+                id: Date.now(),
+                pair: 'USD to NGN',
+                targetRate: '₦1,555.00',
+                status: 'active',
+                created: 'Just now'
+            };
+            
+            alerts.unshift(newAlert);
+            renderAlerts();
+            closeModal('alert-modal');
+            
+            // Show success message in chat
+            addChatMessage('Alert created successfully! I\'ll notify you when the rate is reached.', 'ai');
+        }
+
+        // Drag and drop for settings
+        function initDragAndDrop() {
+            let draggedItem = null;
+
+            document.querySelectorAll('.settings-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    draggedItem = null;
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedItem && draggedItem !== item) {
+                        const settingsList = document.getElementById('settings-list');
+                        const afterElement = getDragAfterElement(settingsList, e.clientY);
+                        
+                        if (afterElement == null) {
+                            settingsList.appendChild(draggedItem);
+                        } else {
+                            settingsList.insertBefore(draggedItem, afterElement);
+                        }
+                        
+                        updateCardOrder();
+                    }
                 });
             });
-        });
-
-        // Priority buttons
-        document.querySelectorAll('.priority-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        // Card expansion
-        function toggleCard(row) {
-            const provider = row.getAttribute('data-provider');
-            const cardId = provider + '-card';
-            const card = document.getElementById(cardId);
-            
-            document.querySelectorAll('.expanded-card').forEach(otherCard => {
-                if (otherCard.id !== cardId) {
-                    otherCard.classList.remove('active');
-                }
-            });
-            
-            card.classList.toggle('active');
         }
 
-        function closeCard(cardId) {
-            document.getElementById(cardId).classList.remove('active');
-        }
-
-        // Drag and drop functionality - removed old implementation
-
-        // Settings modal functionality
-        function openSettings() {
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
-
-        function closeSettings() {
-            document.getElementById('settingsModal').style.display = 'none';
-        }
-
-        // Settings drag and drop
-        let draggedSettingsItem = null;
-
-        document.querySelectorAll('.settings-item').forEach(item => {
-            item.addEventListener('dragstart', function(e) {
-                draggedSettingsItem = this;
-                this.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-            });
-
-            item.addEventListener('dragend', function() {
-                this.classList.remove('dragging');
-                draggedSettingsItem = null;
-            });
-
-            item.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-
-            item.addEventListener('drop', function(e) {
-                e.preventDefault();
-                if (draggedSettingsItem && draggedSettingsItem !== this) {
-                    const settingsList = document.getElementById('settingsList');
-                    const afterElement = getSettingsDragAfterElement(settingsList, e.clientY);
-                    
-                    if (afterElement == null) {
-                        settingsList.appendChild(draggedSettingsItem);
-                    } else {
-                        settingsList.insertBefore(draggedSettingsItem, afterElement);
-                    }
-                    
-                    // Update card order and tray
-                    updateCardOrder();
-                }
-            });
-        });
-
-        function getSettingsDragAfterElement(container, y) {
+        function getDragAfterElement(container, y) {
             const draggableElements = [...container.querySelectorAll('.settings-item:not(.dragging)')];
             
             return draggableElements.reduce((closest, child) => {
@@ -1739,165 +1708,52 @@
 
         function updateCardOrder() {
             const settingsItems = document.querySelectorAll('.settings-item');
-            const cardsContainer = document.getElementById('cardsContainer');
-            const trayItems = document.getElementById('trayItems');
+            const mainContainer = document.querySelector('main');
+            const hero = mainContainer.querySelector('.hero');
+            const bottomNavItems = document.getElementById('bottom-nav-items');
             
-            // Clear tray
-            trayItems.innerHTML = '';
-            
-            // Reorder cards and tray items
-            settingsItems.forEach((item, index) => {
-                const cardId = item.getAttribute('data-card');
-                const card = document.querySelector(`[data-card="${cardId}"]`);
-                const cardTitle = item.querySelector('.settings-item-text').textContent;
-                
+            // Store existing cards
+            const existingCards = {};
+            settingsItems.forEach(item => {
+                const cardType = item.dataset.card;
+                const card = document.getElementById(`${cardType}-card`);
                 if (card) {
-                    // Move card
-                    cardsContainer.appendChild(card);
-                    
-                    // Create tray item
-                    const trayItem = document.createElement('div');
-                    trayItem.className = 'tray-item';
-                    trayItem.setAttribute('data-target', card.id);
-                    trayItem.textContent = cardTitle;
-                    trayItem.style.display = card.style.display;
-                    
-                    if (index === 0) trayItem.classList.add('active');
-                    
-                    trayItem.addEventListener('click', function() {
-                        const targetId = this.getAttribute('data-target');
-                        const targetCard = document.getElementById(targetId);
-                        
-                        if (targetCard) {
-                            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            
-                            document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('active'));
-                            this.classList.add('active');
-                        }
-                    });
-                    
-                    trayItems.appendChild(trayItem);
+                    existingCards[cardType] = card;
+                    card.remove();
                 }
             });
             
-            // Add settings button back
-            const settingsBtn = document.createElement('div');
-            settingsBtn.className = 'settings-btn';
-            settingsBtn.innerHTML = '⚙️';
-            settingsBtn.onclick = openSettings;
-            document.querySelector('.tray-container').appendChild(settingsBtn);
-        }
-
-        // Bottom tray functionality
-        document.querySelectorAll('.tray-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const targetId = this.getAttribute('data-target');
-                const targetCard = document.getElementById(targetId);
+            // Clear navigation
+            bottomNavItems.innerHTML = '';
+            
+            // Re-add cards and nav items in new order
+            settingsItems.forEach((item, index) => {
+                const cardType = item.dataset.card;
+                const cardName = item.querySelector('.settings-name').textContent;
                 
-                if (targetCard) {
-                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Update active state
-                    document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
+                // Re-add card
+                if (existingCards[cardType]) {
+                    mainContainer.appendChild(existingCards[cardType]);
                 }
-            });
-        });
-
-        // Update active tray item on scroll
-        function updateActiveTrayItem() {
-            const cards = document.querySelectorAll('.card');
-            const trayItems = document.querySelectorAll('.tray-item');
-            
-            cards.forEach(card => {
-                const rect = card.getBoundingClientRect();
-                const cardId = card.id;
                 
-                if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
-                    trayItems.forEach(item => {
-                        item.classList.toggle('active', item.getAttribute('data-target') === cardId);
-                    });
+                // Create nav item
+                const navItem = document.createElement('button');
+                navItem.className = 'bottom-nav-item';
+                navItem.textContent = cardName;
+                navItem.setAttribute('onclick', `scrollToCard('${cardType}-card')`);
+                
+                if (index === 0) {
+                    navItem.classList.add('active');
                 }
+                
+                bottomNavItems.appendChild(navItem);
             });
-        }
-
-        // Chat functionality
-        function sendMessage() {
-            const input = document.getElementById('mainChatInput');
-            const message = input.value.trim();
             
-            if (message) {
-                addMessage(message, 'user');
-                input.value = '';
-                
-                // Hide suggested messages
-                document.getElementById('suggestedMessages').style.display = 'none';
-                
-                // Simulate AI response
-                setTimeout(() => {
-                    addMessage('I can help you analyze that! Let me pull up the latest data for those rates...', 'ai');
-                }, 1000);
-            }
+            // Re-initialize functionality
+            initSelects();
+            renderProviders();
+            renderAlerts();
         }
-
-        function sendSuggestedMessage(element) {
-            const message = element.textContent;
-            addMessage(message, 'user');
-            
-            // Hide suggested messages
-            document.getElementById('suggestedMessages').style.display = 'none';
-            
-            // Simulate AI response
-            setTimeout(() => {
-                addMessage('Here\'s the analysis you requested. Let me show you the trends...', 'ai');
-            }, 1000);
-        }
-
-        function addMessage(text, type) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = 'message-bubble';
-            bubbleDiv.textContent = text;
-            
-            messageDiv.appendChild(bubbleDiv);
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Enter key in chat
-        document.getElementById('mainChatInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.custom-select')) {
-                document.querySelectorAll('.custom-select').forEach(select => {
-                    select.querySelector('.select-display').classList.remove('active');
-                    select.querySelector('.select-dropdown').classList.remove('active');
-                });
-            }
-        });
-
-        // Show alerts section for subscribers (demo)
-        function showAlertsForSubscribers() {
-            setTimeout(() => {
-                document.getElementById('alertsCard').style.display = 'block';
-                document.querySelector('[data-target="alertsCard"]').style.display = 'block';
-            }, 3000);
-        }
-
-        // Event listeners
-        window.addEventListener('scroll', updateActiveTrayItem);
-        window.addEventListener('load', () => {
-            updateActiveTrayItem();
-            showAlertsForSubscribers();
-        });
     </script>
 </body>
 </html>
