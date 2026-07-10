@@ -21,73 +21,68 @@ To turn this high-performance utility into a sustainable business engine, the ar
 The core production platform is written in Go and structured as an optimized modulith hosted on AWS. It implements clean interface abstractions to shift smoothly from a resource-efficient local footprint to a high-availability enterprise configuration.
 
 ## Full Production, Monetization, B2B Data Feeds, & Multi-Agent Network Topology
-```
-                                      [ THE INGRESS EDGE ]
-                       +───────────────────────────────────────────────+
-                       │   Client Browser / AI Bot / Corporate API B2B  │
-                       +───────────────────────────────────────────────+
-                                               │
-                                               ▼ (HTTPS / TLS via Geo-i18n & /b2b Routes)
-                               +──────────────────────────────+
-                               │     AWS CloudFront (CDN)     │
-                               │ - Applies: AWS WAF Block     │ <── Rate Limits Bot Spam
-                               │ - Serves: Pre-Rendered Pages │ <── Edge ISR Frontend Layer (0 MB Host RAM)
-                               +──────────────────────────────+
-                                               │
-                                               ▼ (HTTP / Port 80)
-+─────────────────────────────────────────────────────────────────────────────────────────────────────────────+
-│ AWS EC2 INSTANCE (t4g.micro Modulith Host Node - 1 GB RAM Allocated)                                        │
-│                                                                                                             │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│   |                                    NGINX Reverse Proxy Layer                                        |   │
-│   |        - Blue/Green Upstream Ports [8080 / 8081] Configuration Matrix for Zero-Downtime Swaps       |   │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│                                              │                                                              │
-│                                              ▼ (Localhost Ports 8080 / 8081 Rerouting)                      │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│   |                                   GO APP MODULITH CORE (Systemd Key)                                |   │
-│   |                                                                                                     |   │
-│   |   - Go HTTP REST API & Core Routing Logic                                                    |   │
-│   |   - In-Memory Worker Alert Pool Loop (Evaluates targets via specific corridor index maps)           |   │
-│   |   - B2B API Token Validation Middleware & Stripe Webhook Idempotency Check Controllers              |   │
-│   |   - Background SQS Long-Polling Consumer (Pools writes into single DB transactions)                 |   │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│                                              │                                                              │
-│                                              ▼                                                              │
-│                                ==============================                                               │
-│                                [   CACHE LAYER INTERFACE    ]                                               │
-│                                ==============================                                               │
-│                                      │                │                                                     │
-│                                      ├─► [Lean]       ▼                                                     │
-│                                      │   sync.Map ────┴─────────────────────────────────────────────────────┤
-│                                      ▼                                                                      │
-+──────────────────────────────────────┼──────────────────────────────────────────────────────────────────────+
-                                       │
-                                       ▼
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-  │                      AWS RDS PostgreSQL (db.t4g.micro - Multi-AZ High-Availability Map)                   │
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-                                                     │
-                                                     ▼ (Zerolog Structured JSON Stream)
-                                         [ CloudWatch Log Groups ]
-                                                     │
-                                                     ▼ (CloudWatch Metric Filter Trigger)
-                                    ====================================
-                                    [  GITHUB ACTIONS PIPELINE VM      ]
-                                    ====================================
-                                    │ - Isolated LangGraph Agent Pool  │
-                                    │ - Go AST Lexical Whitelist Linter│
-                                    │ - Statistical Outlier Canary     │
-                                    +──────────────────────────────────+
-                                                     │
-                                      (Success: Code branch PR generated)
-                                                     ▼
-                                    +──────────────────────────────────+
-                                    │  Serverless AWS Lambda Clusters  │
-                                    │  - Buffered via Standard AWS SQS │
-                                    │  - Normalized Residential Proxies│
-                                    +──────────────────────────────────+
+```mermaid
+flowchart TD
+    %% Ingress Layer
+    subgraph Ingress ["THE INGRESS EDGE"]
+        Client["Client Browser / AI Bot /<br/>Corporate API B2B"]
+    end
 
+    %% CloudFront Edge Layer
+    CF["AWS CloudFront (CDN)<br/>- Applies: AWS WAF Block<br/>- Serves: Pre-Rendered Pages"]
+    
+    %% Right-side Callouts
+    RateLimit["Rate Limits Bot Spam"]
+    EdgeISR["Edge ISR Frontend Layer<br/>(0 MB Host RAM)"]
+    
+    %% AWS EC2 Modulith Layer
+    subgraph EC2 ["AWS EC2 INSTANCE (t4g.micro Modulith Host Node - 1 GB RAM Allocated)"]
+        Nginx["NGINX Reverse Proxy Layer<br/>- Blue/Green Upstream Ports<br/>[8080 / 8081]<br/>Configuration Matrix for<br/>Zero-Downtime Swaps"]
+        
+        subgraph GoCore ["GO APP MODULITH CORE (Systemd Key)"]
+            GoApp["- Go HTTP REST API & Core<br/>Routing Logic
+            <br/>- In-Memory Worker Alert Pool<br/>Loop (Evaluates targets via<br/>specific corridor index maps)
+            <br/>- B2B API Token Validation<br/>Middleware & Stripe Webhook<br/>Idempotency Check Controllers
+            <br/>- Background SQS Long-Polling<br/>Consumer (Pools writes into<br/>single DB transactions)"]
+        end
+        
+        CacheInterface{"CACHE LAYER INTERFACE"}
+        SyncMap["[Lean] sync.Map"]
+    end
+
+    %% Database & Logs
+    RDS[("AWS RDS PostgreSQL<br/>(db.t4g.micro - Multi-AZ<br/>High-Availability Map)")]
+    Logs["CloudWatch Log Groups"]
+
+    %% Pipeline & Lambda
+    subgraph GHA ["GITHUB ACTIONS PIPELINE VM"]
+        AgentPool["- Isolated LangGraph Agent Pool<br/>- Go AST Lexical Whitelist Linter<br/>- Statistical Outlier Canary"]
+    end
+
+    subgraph LambdaCluster ["Serverless AWS Lambda Clusters"]
+        Lambda["- Buffered via Standard AWS<br/>SQS<br/>- Normalized Residential Proxies"]
+    end
+
+    %% Connections
+    Client -->|"(HTTPS / TLS via Geo-i18n & /b2b Routes)"| CF
+    RateLimit -.-> CF
+    EdgeISR -.-> CF
+    
+    CF -->|"(HTTP / Port 80)"| Nginx
+    Nginx -->|"(Localhost Ports 8080 / 8081<br/>Rerouting)"| GoApp
+    GoApp --> CacheInterface
+    CacheInterface --> SyncMap
+    SyncMap --> RDS
+    CacheInterface --> RDS
+    
+    RDS -->|"(Zerolog Structured JSON<br/>Stream)"| Logs
+    Logs -->|"(CloudWatch Metric Filter<br/>Trigger)"| GHA
+    GHA -->|"(Success: Code branch PR<br/>generated)"| Lambda
+
+    %% Styling
+    style CF fill:#f9f,stroke:#333
+    style EC2 fill:#fcfcfc
+    style GHA fill:#eee
 ```
 
 ## Abstract Ingress & Routing Interface
@@ -104,18 +99,19 @@ The core production platform is written in Go and structured as an optimized mod
 ------------------------------
 ## 3. Data Pipeline & Agentic Systems
 Data collection is entirely decoupled from the primary application process, executing inside standalone, serverless AWS Lambda functions to prevent resource starvation or runtime leaks within the Modulith API.
-
-```
-[ EventBridge Cron ] ──► [ Lambda Scrapers ] ──► (Residential Proxy) ──► [ Outbound MTP Targets ]
-                                 │
-                                 ▼ (Standardized RateRecord Mapping)
-                        [ AWS SQS Ingestion Queue ]
-                                 │
-                                 ▼ (Long-Poll Consumer Thread)
-                     [ Go Modulith Single DB Client Connection ]
-                                 │
-                                 ▼ (Idempotent DB UPSERT Multi-Row Transactions)
-                     [ AWS RDS PostgreSQL Multi-AZ Engine ]
+```mermaid
+flowchart TD
+    Cron["EventBridge Cron"] --> Lambda["Lambda Scrapers"]
+    Lambda -->|"(Residential Proxy)"| MTP["Outbound MTP Targets"]
+    
+    Lambda -->|"(Standardized RateRecord<br/>Mapping)"| SQS["AWS SQS Ingestion Queue"]
+    SQS -->|"(Long-Poll Consumer Thread)"| GoMod["Go Modulith Single DB Client<br/>Connection"]
+    GoMod -->|"(Idempotent DB UPSERT<br/>Multi-Row Transactions)"| RDS_Engine[("AWS RDS PostgreSQL Multi-AZ<br/>Engine")]
+    
+    style Cron fill:#ff9900,color:#000
+    style Lambda fill:#ff9900,color:#000
+    style SQS fill:#ff9900,color:#000
+    style RDS_Engine fill:#336699,color:#fff
 ```
 
 * Extract: Ingestion tasks execute inside individual AWS Lambda functions managed by an AWS EventBridge scheduler. To bypass anti-bot defenses, the Go-based Lambda clients drop the standard network client stack, use the uTLS library (github.com/refraction-networking/utls) to forge the TLS signatures of major consumer browsers, and route all outbound calls through a Rotating Residential Proxy Network to hide data center IP signatures.
