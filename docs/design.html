@@ -389,72 +389,56 @@ Beyond the consumer-facing side, the aggregated rate data serves as a market int
 <h2 id="2-system-architecture--boundaries">2. System Architecture &amp; Boundaries</h2>
 <p>The core production platform is written in Go and structured as an optimized modulith hosted on AWS. It implements clean interface abstractions to shift smoothly from a resource-efficient local footprint to a high-availability enterprise configuration.</p>
 <h2 id="full-production-monetization-b2b-data-feeds--multi-agent-network-topology">Full Production, Monetization, B2B Data Feeds, &amp; Multi-Agent Network Topology</h2>
-<pre class="hljs"><code><div>                                      [ THE INGRESS EDGE ]
-                       +───────────────────────────────────────────────+
-                       │   Client Browser / AI Bot / Corporate API B2B  │
-                       +───────────────────────────────────────────────+
-                                               │
-                                               ▼ (HTTPS / TLS via Geo-i18n &amp; /b2b Routes)
-                               +──────────────────────────────+
-                               │     AWS CloudFront (CDN)     │
-                               │ - Applies: AWS WAF Block     │ &lt;── Rate Limits Bot Spam
-                               │ - Serves: Pre-Rendered Pages │ &lt;── Edge ISR Frontend Layer (0 MB Host RAM)
-                               +──────────────────────────────+
-                                               │
-                                               ▼ (HTTP / Port 80)
-+─────────────────────────────────────────────────────────────────────────────────────────────────────────────+
-│ AWS EC2 INSTANCE (t4g.micro Modulith Host Node - 1 GB RAM Allocated)                                        │
-│                                                                                                             │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│   |                                    NGINX Reverse Proxy Layer                                        |   │
-│   |        - Blue/Green Upstream Ports [8080 / 8081] Configuration Matrix for Zero-Downtime Swaps       |   │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│                                              │                                                              │
-│                                              ▼ (Localhost Ports 8080 / 8081 Rerouting)                      │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│   |                                   GO APP MODULITH CORE (Systemd Key)                                |   │
-│   |                                                                                                     |   │
-│   |   - Go HTTP REST API &amp; Core Routing Logic                                                    |   │
-│   |   - In-Memory Worker Alert Pool Loop (Evaluates targets via specific corridor index maps)           |   │
-│   |   - B2B API Token Validation Middleware &amp; Stripe Webhook Idempotency Check Controllers              |   │
-│   |   - Background SQS Long-Polling Consumer (Pools writes into single DB transactions)                 |   │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│                                              │                                                              │
-│                                              ▼                                                              │
-│                                ==============================                                               │
-│                                [   CACHE LAYER INTERFACE    ]                                               │
-│                                ==============================                                               │
-│                                      │                │                                                     │
-│                                      ├─► [Lean]       ▼                                                     │
-│                                      │   sync.Map ────┴─────────────────────────────────────────────────────┤
-│                                      ▼                                                                      │
-+──────────────────────────────────────┼──────────────────────────────────────────────────────────────────────+
-                                       │
-                                       ▼
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-  │                      AWS RDS PostgreSQL (db.t4g.micro - Multi-AZ High-Availability Map)                   │
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-                                                     │
-                                                     ▼ (Zerolog Structured JSON Stream)
-                                         [ CloudWatch Log Groups ]
-                                                     │
-                                                     ▼ (CloudWatch Metric Filter Trigger)
-                                    ====================================
-                                    [  GITHUB ACTIONS PIPELINE VM      ]
-                                    ====================================
-                                    │ - Isolated LangGraph Agent Pool  │
-                                    │ - Go AST Lexical Whitelist Linter│
-                                    │ - Statistical Outlier Canary     │
-                                    +──────────────────────────────────+
-                                                     │
-                                      (Success: Code branch PR generated)
-                                                     ▼
-                                    +──────────────────────────────────+
-                                    │  Serverless AWS Lambda Clusters  │
-                                    │  - Buffered via Standard AWS SQS │
-                                    │  - Normalized Residential Proxies│
-                                    +──────────────────────────────────+
+<pre><code class="language-mermaid"><div class="mermaid">flowchart TD
+    Client["Client Browser / AI Bot /<br/>Corporate B2B API"]
+    
+    CF["`AWS CloudFront CDN
+    * WAF block, bot rate-limiting
+    * Serves pre-rendered Edge ISR pages (0 MB host RAM)`"]
 
+    subgraph EC2 ["AWS EC2 t4g.micro Modulith Host (1 GB RAM)"]
+        direction TB
+        NGINX["`**NGINX Reverse Proxy**
+        Blue/Green upstream 8080/8081
+        zero-downtime swaps`"]
+        
+        Modulith["`**Go App Modulith Core (systemd)**
+        * REST API and core routing
+        * In-memory worker alert pool
+        * B2B token auth and Stripe webhook idempotency
+        * Background SQS long-poll consumer`"]
+        
+        Cache["`**Cache Layer Interface**
+        * Lean: sync.Map 
+        * Enterprise: ElastiCache Redis`"]
+        
+        NGINX --> Modulith --> Cache
+    end
+
+    RDS["`**AWS RDS PostgreSQL**
+    db.t4g.micro · Multi-AZ 
+    high availability`"]
+    
+    CW["`**CloudWatch Log Groups**
+    Zerolog structured JSON stream`"]
+    
+    GHA["`**GitHub Actions Pipeline VM**
+    * LangGraph agent pool
+    * Go AST whitelist linter
+    * Statistical outlier canary`"]
+    
+    Lambda["`**Serverless AWS Lambda Clusters**
+    * Buffered via standard AWS SQS
+    * Rotating residential proxies`"]
+
+    %% Connections
+    Client -->|HTTPS / TLS| CF
+    CF -->|HTTP port 80| NGINX
+    Cache -->|persistent DB connection| RDS
+    RDS -->|app telemetry stream| CW
+    CW -->|metric filter fires repo dispatch webhook| GHA
+    GHA -->|success: PR merged and deployed| Lambda
+    Lambda -.->|scraped rates via SQS| Modulith
 </div></code></pre>
 <h2 id="abstract-ingress--routing-interface">Abstract Ingress &amp; Routing Interface</h2>
 <ul>
@@ -470,16 +454,12 @@ Beyond the consumer-facing side, the aggregated rate data serves as a market int
 <hr>
 <h2 id="3-data-pipeline--agentic-systems">3. Data Pipeline &amp; Agentic Systems</h2>
 <p>Data collection is entirely decoupled from the primary application process, executing inside standalone, serverless AWS Lambda functions to prevent resource starvation or runtime leaks within the Modulith API.</p>
-<pre class="hljs"><code><div>[ EventBridge Cron ] ──► [ Lambda Scrapers ] ──► (Residential Proxy) ──► [ Outbound MTP Targets ]
-                                 │
-                                 ▼ (Standardized RateRecord Mapping)
-                        [ AWS SQS Ingestion Queue ]
-                                 │
-                                 ▼ (Long-Poll Consumer Thread)
-                     [ Go Modulith Single DB Client Connection ]
-                                 │
-                                 ▼ (Idempotent DB UPSERT Multi-Row Transactions)
-                     [ AWS RDS PostgreSQL Multi-AZ Engine ]
+<pre><code class="language-mermaid"><div class="mermaid">flowchart TD
+    Cron["AWS EventBridge Cron"] --> Lam["AWS Lambda Scrapers"]
+    Lam -->|via rotating residential proxy| MTP["Outbound MTP Targets"]
+    Lam -->|standardized RateRecord<br/>mapping| SQS["AWS SQS Ingestion Queue"]
+    SQS -->|long-poll consumer thread| Mod["Go Modulith<br/>single DB client connection"]
+    Mod -->|idempotent multi-row insert| RDS["AWS RDS PostgreSQL<br/>Multi-AZ engine"]
 </div></code></pre>
 <ul>
 <li>Extract: Ingestion tasks execute inside individual AWS Lambda functions managed by an AWS EventBridge scheduler. To bypass anti-bot defenses, the Go-based Lambda clients drop the standard network client stack, use the uTLS library (github.com/refraction-networking/utls) to forge the TLS signatures of major consumer browsers, and route all outbound calls through a Rotating Residential Proxy Network to hide data center IP signatures.</li>

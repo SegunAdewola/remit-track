@@ -8,96 +8,74 @@ Last Updated: July 2026
 ------------------------------
 ## 1. Global System Topology
 The global system topology isolates real-time data ingestion, public presentation caching, core business state management, and the agentic self-healing verification network into clean, decoupled tiers.
-```
-                                    [ 1. EDGE INGRESS LAYER ]
-                                               │
-               ┌───────────────────────────────┴───────────────────────────────┐
-               ▼ (Public Web / Bot Traffic)                                    ▼ (B2B Enterprise Requests)
-    +──────────────────────────────+                                +──────────────────────────────+
-    │     AWS CloudFront (CDN)     │                                │     AWS CloudFront (CDN)     │
-    │ - Applies WAF Rate-Limits    │                                │ - Restricts to /v1/b2b/*     │
-    │ - Serves Static Edge ISR Pages│                               │ - Enforces Token Auth Header │
-    +──────────────────────────────+                                +──────────────────────────────+
-               │                                                               │
-               └───────────────────────────────┬───────────────────────────────┘
-                                               │ (Clear, Filtered HTTP Routes)
-                                               ▼
-                                   [ 2. COMPUTE HOST NODE ]
-+─────────────────────────────────────────────────────────────────────────────────────────────────────────────+
-│ AWS EC2 INSTANCE (t4g.micro • 1 GB RAM • Linux Ubuntu • Managed via systemd)                                │
-│                                                                                                             │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│   │                                      NGINX REVERSE PROXY                                            │   │
-│   │   - Port 80/443 External Ingress Interception & TLS Termination                                     │   │
-│   │   - Active Blue/Green Upstream Ports [8080 / 8081] Routing Matrix with Zero-Downtime Hot Reloads    │   │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│                                              │                                                              │
-│                                              ▼ (Local Socket Proxy Pass)                                    │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│   │                                  GO APPLICATION MODULITH CORE                                       │   │
-│   │                                                                                                     │   │
-│   │   ├── [API Package]        : Consumer REST Endpoints & B2B Token-Gate Middleware                    │   │
-│   │   ├── [Chat Package]       : Conversational LLM Context Router (Streaming Chunk Workers)            │   │
-│   │   ├── [Alert Pool Worker]  : In-Memory Map Corridor Index Matcher (`map[string][]AlertConfig`)      │   │
-│   │   └── [Ingestion Consumer] : Persistent SQS Long-Poll Loop (Idempotent Multi-Row DB Builder)        │   │
-│   +─────────────────────────────────────────────────────────────────────────────────────────────────────+   │
-│                                              │                                                              │
-│                                              ▼ (Sub-Millisecond Thread Reading)                             │
-│                                ==============================                                               │
-│                                [   RATECACHE STRUCT INTERFACE ]                                             │
-│                                ==============================                                               │
-│                                      │                │                                                     │
-│                                      ├─► [Lean]       ▼ [Enterprise Scale-Up]                               │
-│                                      │   sync.Map     Amazon ElastiCache Redis Cluster                      │
-+──────────────────────────────────────┼──────────────────────────────────────────────────────────────────────+
-                                       │
-                                       ▼ (Persistent Database Connections)
-                                    [ 3. CORE COUPLING STORAGE LAYER ]
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-  │ AWS RDS POSTGRESQL (db.t4g.micro • Multi-AZ Active-Passive Replication • PITR Logging • 20GB gp3 SSD)     │
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-                                       │
-                                       ▼ (Tails stdout Structured Streams)
-                                    [ 4. ASYNCHRONOUS TELEMETRY LAYER ]
-  +────────────────────────────────────────────────────────────────────────────────────────────────────────────+
-  │ AWS CLOUDWATCH ENGINE                                                                                      │
-  │  ├── Log Group Ingestion : Streams application JSON logs                                                   │
-  │  └── Metric Filters      : Matches scraper error / empty-payload log patterns, firing Repository Dispatch webhooks │
-  +────────────────────────────────────────────────────────────────────────────────────────────────────────────+
-                                       │
-                                       ▼ (Encrypted Webhook JSON Payload)
-                                    [ 5. INTEGRATED PIPELINE HARNESS ]
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-  │ GITHUB ACTIONS VM RUNNER (Ubuntu-Latest • Ephemeral Sandbox)                                              │
-  │  ├── Agentic Core        : Multi-Turn LangGraph Orchestrator (RAG Vector S3 Unpacker)                     │
-  │  ├── Security Guardian   : Abstract Syntax Tree (AST) Compiler Import Whitelist Sanitizer                 │
-  │  ├── Simulation Sandbox  : Docker Compose Proxy Network (JA4 Handshake Testing Layouts)                   │
-  │  └── Canary System       : Live Residential Proxy Smoke Tester & 3-Sigma Mathematical Verification        │
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-                                       │
-                                       ▼ (On Full Manual Verification Merge Approval)
-                                    [ 6. SERVERLESS EXTRACTION CLUSTER ]
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-  │ AWS LAMBDA INGESTION FUNCTIONS                                                                            │
-  │  ├── Schedule Profile    : EventBridge Cron Invocations (Every 5 Minutes)                                 │
-  │  ├── Network Mask        : uTLS Browser Signature Forging across Rotating Residential Proxies             │
-  │  └── Buffer Channel      : Pushes Standardized JSON Objects directly to AWS SQS                           │
-  +───────────────────────────────────────────────────────────────────────────────────────────────────────────+
-```
+```mermaid
+flowchart TD
+    subgraph Edge["1 · Edge Ingress Layer"]
+        direction LR
+        CFpub["AWS CloudFront (Public)<br/>WAF rate limits<br/>Serves static Edge ISR pages"]
+        CFb2b["AWS CloudFront (B2B)<br/>Restricts to /v1/b2b/*<br/>Enforces token auth header"]
+    end
+
+    subgraph Host["2 · Compute Host Node: EC2 t4g.micro (1 GB RAM, systemd)"]
+        direction TB
+        NGINX["NGINX Reverse Proxy<br/>TLS termination on :80 and :443<br/>Blue/Green upstream :8080 / :8081"]
+        subgraph Mod["Go Application Modulith Core"]
+            direction TB
+            API["API Package<br/>Consumer REST and B2B token gate"]
+            Chat["Chat Package<br/>LLM context router, streaming workers"]
+            Alert["Alert Pool Worker<br/>In-memory corridor index matcher"]
+            Ingest["Ingestion Consumer<br/>Persistent SQS long-poll, multi-row DB builder"]
+        end
+        RateCache["RateCache Interface<br/>Lean: sync.Map · Enterprise: ElastiCache Redis"]
+        NGINX --> Mod
+        Mod --> RateCache
+    end
+
+    RDS["3 · Core Storage: AWS RDS PostgreSQL<br/>db.t4g.micro · Multi-AZ active-passive · PITR · 20 GB gp3"]
+
+    subgraph Tel["4 · Asynchronous Telemetry Layer"]
+        CW["AWS CloudWatch<br/>Log group ingestion (JSON)<br/>Metric filters match scraper error / empty-payload patterns"]
+    end
+
+    subgraph Pipe["5 · Integrated Pipeline Harness: GitHub Actions VM (ephemeral)"]
+        direction TB
+        Agent["Agentic Core<br/>Multi-turn LangGraph, RAG S3 unpacker"]
+        Guard["Security Guardian<br/>Go AST import allowlist sanitizer"]
+        Sim["Simulation Sandbox<br/>Docker Compose proxy, JA4 tests"]
+        Canary["Canary System<br/>Residential proxy smoke test, 3-sigma check"]
+        Agent --> Guard --> Sim --> Canary
+    end
+
+    subgraph Extract["6 · Serverless Extraction Cluster: AWS Lambda"]
+        direction TB
+        Sched["Schedule<br/>EventBridge cron, every 5 min"]
+        Mask["Network Mask<br/>uTLS forging via residential proxies"]
+        Buf["Buffer Channel<br/>Pushes JSON objects to AWS SQS"]
+        Sched --> Mask --> Buf
+    end
+
+    CFpub -->|filtered HTTP| NGINX
+    CFb2b -->|filtered HTTP| NGINX
+    RateCache -->|persistent DB connections| RDS
+    RDS -->|app telemetry stream| CW
+    CW -->|repository dispatch webhook| Agent
+    Canary -->|on manual merge approval| Sched
+    Buf -.->|scraped rates via SQS| Ingest
+```                             
 
 ------------------------------
 ## 2. Component Deep Dives & Architectural Zoom-Ins
 ### Section A: Frontend, Ingress, & Programmatic Edge Caching
 ### Architectural Design & Implementation Blueprint
 The public delivery architecture completely avoids hosting a live, resource-intensive Node.js JavaScript rendering process on the production machine. Instead, it shifts the computing weight outward to the Content Delivery Network (CDN) edge.
-```
-[ AI Crawler / PerplexityBot ] ──► [ AWS CloudFront Edge Node ] ──► (Cache Hit: 0ms Host Compute)
-                                              │
-                                              ▼ (On Ingestion Completion / Cache Expired)
-                                   [ Executing Edge ISR Trigger ]
-                                              │
-                                              ▼ (Purges & Rebuilds Specific Path JSON/HTML)
-                                   [ Next.js Build Workspace (CI/CD) ] ──► Pushes Flat Files to S3
+```mermaid
+flowchart TD
+    Bot["AI Crawler / PerplexityBot"] -->|request| CF["AWS CloudFront Edge Node"]
+    CF -->|cache hit: 0 ms host compute| Hit["Served pre-rendered page"]
+    CF -->|on ingestion completion or<br/>cache expiry| ISR["Edge ISR Trigger"]
+    ISR -->|purges and rebuilds<br/>corridor path| Build["Next.js Build Workspace (CI/CD)"]
+    Build -->|pushes flat HTML / JSON files| S3["AWS S3 Static Bucket"]
+    S3 -->|origin fetch| CF
 ```
 
    1. **Static Build Ingestion Platform**: The frontend application package (`/apps/ssr-frontend`) is developed using Next.js. During continuous delivery deployment steps, it compiles directly into flat, static HTML and asset arrays.
@@ -127,19 +105,15 @@ The public delivery architecture completely avoids hosting a live, resource-inte
 ## Section B: Core Backend Modulith, In-Memory Alert Engine, & B2B Layer
 ### Architectural Design & Implementation Blueprint
 The core application (`/apps/remittrack-api`) is constructed inside a single Go compiled modulith binary package running under **Linux Systemd Process Supervision** on an **AWS EC2 `t4g.micro`** virtual node.
-```
-                      ┌───────────────────────────────────────────────┐
-                      │    Go Application Modulith Process (Port 8080)│
-                      │                                               │
-  [ SQS Message Queue]├──► [ Ingestion Thread ]                       │
-                      │          │                                    │
-                      │          ▼ (Dispatches Async Internal Event)  │
-                      │    [ Alert Pool Evaluation Loop ]             │
-                      │          │                                    │
-                      │          ▼ (Instant Look-up)                  │
-                      │    Memory Corridor Index Map                  │
-                      │    `map[string][]AlertConfig`                 │
-                      └───────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    SQS["SQS Message Queue"]
+    subgraph Proc["Go Application Modulith Process (:8080)"]
+        direction TB
+        Ing["Ingestion Thread"] -->|dispatches async internal event| Loop["Alert Pool Evaluation Loop"]
+        Loop -->|instant lookup| Map["In-Memory Corridor Index Map<br/>keyed by corridor, e.g. USD:GHS"]
+    end
+    SQS --> Ing
 ```
 
    1. **NGINX Upstream Rolling Swap Routing**: NGINX handles ingress data flows on the virtual host machine, shielding the Go execution process. It implements a dual-port upstream configuration matrix to support zero-downtime hot reloads:
@@ -191,23 +165,14 @@ The core application (`/apps/remittrack-api`) is constructed inside a single Go 
 ## Section C: Hardened Serverless Ingestion & Network Evasion Data Pipeline
 ### Architectural Design & Implementation Blueprint
 The scraping and pipeline framework decouples data extraction completely from the host machine to isolate process threads and prevent connection exhaustion.
-```
-[ AWS EventBridge Cron ] ──► [ AWS Lambda Ingestion Runner ]
-                                        │
-                                        ▼ (uTLS Fingerprint Handshake)
-                            [ Rotating Residential Proxy Node ]
-                                        │
-                                        ▼ (Fetches payload anonymously)
-                            [ Target Money Transfer Provider ]
-                                        │
-                                        ▼ (Maps to Normalized RateRecord)
-                            [ Standard AWS SQS Message Queue ]
-                                        │
-                                        ▼ (Long-Polls concurrent batches)
-                            [ Core Modulith Ingestion Processor ]
-                                        │
-                                        ▼ (Idempotent Multi-Row UPSERT Block)
-                            [ AWS RDS PostgreSQL Storage Engine ]
+```mermaid
+flowchart TD
+    Cron["AWS EventBridge Cron"] --> Runner["AWS Lambda Ingestion Runner"]
+    Runner -->|uTLS fingerprint handshake| Proxy["Rotating Residential Proxy Node"]
+    Proxy -->|fetches payload anonymously| MTP["Target Money Transfer Provider"]
+    MTP -->|maps to normalized RateRecord| SQS["Standard AWS SQS<br/>Message Queue"]
+    SQS -->|long-polls concurrent batches| Proc["Core Modulith Ingestion<br/>Processor"]
+    Proc -->|idempotent multi-row insert| RDS["AWS RDS PostgreSQL Storage<br/>Engine"]
 ```
 
    1. **Stateless Serverless Execution Extractor**: Scraper code elements are extracted out of the core app process space into standalone **AWS Lambda functions** written in Go. An AWS EventBridge cron schedule executes the Lambda cluster every 5 minutes.
@@ -247,22 +212,20 @@ The scraping and pipeline framework decouples data extraction completely from th
 ## Section D: DevOps, CI/CD, & Automated Infrastructure
 ### Architectural Design & Implementation Blueprint
 The platform uses a complete GitOps model to manage deployment automation and cloud resource provisioning through a single GitHub monorepo configuration.
-```
-[ Code Commit Push / Merge ] ──► [ GitHub Actions Global Pipeline Runner ]
-                                              │
-             ┌────────────────────────────────┴────────────────────────────────┐
-             ▼ (Validation Track)                                              ▼ (Infrastructure Automation Track)
-[ Run Golang linter / Unit Tests ]                                [ Initialize Terraform Workspace ]
-             │                                                                 │
-             ▼                                                                 ▼
-[ Launch Docker Compose Chaos Sandbox ]                           [ Run terraform plan / apply ]
-             │                                                                 │
-             ▼ (Executes Outlier Canary Check)                                 ▼
-[ Cross-Compile Lambda Binaries & Zip packages ]                 [ Provision Multi-AZ RDS & SQS Pools ]
-             │                                                                 │
-             └────────────────────────────────┬────────────────────────────────┘
-                                              ▼
-                        [ Execute Production Rolling Swap Live Update ]
+```mermaid
+flowchart TD
+    Push["Code Commit Push / Merge"] --> Runner["GitHub Actions Pipeline Runner"]
+
+    Runner --> V1["Validation Track<br/>Run Go linter and unit tests"]
+    V1 --> V2["Launch Docker Compose<br/>Chaos Sandbox"]
+    V2 -->|executes outlier canary check| V3["Cross-compile Lambda binaries <br/>and zip packages"]
+
+    Runner --> I1["Infrastructure Track<br/>Initialize Terraform workspace"]
+    I1 --> I2["terraform plan (reviewed),<br/>then apply"]
+    I2 --> I3["Provision Multi-AZ RDS and <br/>SQS pools"]
+
+    V3 --> Deploy["Execute Production Rolling Swap <br/>Live Update"]
+    I3 --> Deploy
 ```
 
    1. **The Terraform Infrastructure Automation Engine**: The cloud footprint is fully managed as code within the `/terraform/` repository directory. When modifications pass verification tests, continuous integration systems call the deployment toolchain:
@@ -307,18 +270,15 @@ resource "aws_sqs_queue" "remittrack_ingestion_queue" {
 ### Architectural Design & Implementation Blueprint
 The AI Engineering layer operates within an isolated sandbox environment inside the GitHub Actions pipeline (`/services/`), running a multi-agent system designed to manage code healing, legal compliance tracking, and automated platform onboarding safely.
 
-```
-                       [ ACTION WEBHOOK TRIGGER ]
-                                   │
-                                   ▼
-                [ Ephemeral GitHub Actions Runner VM ]
-                                   │
-      ┌────────────────────────────┼────────────────────────────┐
-      ▼                            ▼                            ▼
-[ 1. SELF-HEALING AGENT ]    [ 2. COMPLIANCE AGENT ]      [ 3. ONBOARDING AGENT ]
-  ├── Pulls broken code        ├── Crawls robots.txt        ├── Uses playwright-stealth
-  ├── Queries ChromaDB RAG     ├── LLM Policy Check         ├── Sniffs background XHR
-  └── Runs AST Linter Gate     └── Toggles provider_map.json└── Generates Go Lambda Code
+```mermaid
+flowchart TD
+    Trigger["Action Webhook Trigger"] --> VM["Ephemeral GitHub Actions <br/>Runner VM"]
+    VM --> Heal["1 · Self-Healing Agent<br/>Pulls broken code<br/>Queries ChromaDB RAG<br/>Runs AST linter gate"]
+    VM --> Comply["2 · Compliance Agent<br/>Crawls robots.txt and ToS<br/>LLM policy check<br/>Toggles provider_map.json"]
+    VM --> Onboard["3 · Onboarding Agent<br/>Uses playwright-stealth<br/>Sniffs background XHR<br/>Generates Go Lambda code"]
+    Heal -->|candidate patch| PR["Opens Git PR for<br/>manual human review"]
+    Comply -->|policy change| PR
+    Onboard -->|new scraper| PR
 ```
 
 #### 1. The Agentic Self-Healing Engine (Python + LangGraph)
@@ -416,23 +376,13 @@ Every automated execution step, simulation check pass, and canary validation eve
 
 ### Continuous Integration Regression Testing Sequence
 When a new code change or onboarding integration request drops into the monorepo branch, the global evaluation test suite runs automated validation checks to prevent regressions before deployment:
-```
-                  [ Pull Request Event / Auto-Heal Test Init ]
-                                       │
-                                       ▼
-                     [ Boot Docker Compose Proxy Sandbox ]
-                                       │
-                                       ▼
-                     [ Read failure_registry.json Targets ]
-                                       │
-                                       ▼
-                     [ Execute Automated Regression Runs ]
-       ├── Mock Proxy simulates each historical failure case sequentially
-       └── Harness asserts new scraper code passes without breaking older rules
-                                       │
-                    ┌──────────────────┴──────────────────┐
-                    ▼ (Any test fails)                    ▼ (All tests pass)
-            [ REJECT BUILD ]                      [ APPROVE & PUSH TO MAIN ]
+```mermaid
+flowchart TD
+    Init["Pull Request Event /<br/>Auto-Heal Test Init"] --> Boot["Boot Docker Compose<br/>Proxy Sandbox"]
+    Boot --> Read["Read failure_registry.json targets"]
+    Read --> Run["Execute Automated <br/>Regression Runs<br/>• Mock proxy replays each<br/>historical failure<br/>• Harness asserts no regressions<br/>on older rules"]
+    Run -->|any test fails| Fail["REJECT BUILD"]
+    Run -->|all tests pass| Pass["APPROVE and PUSH TO MAIN"]
 ```
 
 By verifying your entire historical failure log array against every code candidate inside an isolated, containerized local loop, you protect production pipelines from breaking changes. This ensures high data reliability, solidifies security perimeters, and provides an exceptionally robust system architecture.

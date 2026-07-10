@@ -21,68 +21,58 @@ To turn this high-performance utility into a sustainable business engine, the ar
 The core production platform is written in Go and structured as an optimized modulith hosted on AWS. It implements clean interface abstractions to shift smoothly from a resource-efficient local footprint to a high-availability enterprise configuration.
 
 ## Full Production, Monetization, B2B Data Feeds, & Multi-Agent Network Topology
+
 ```mermaid
 flowchart TD
-    %% Ingress Layer
-    subgraph Ingress ["THE INGRESS EDGE"]
-        Client["Client Browser / AI Bot /<br/>Corporate API B2B"]
-    end
-
-    %% CloudFront Edge Layer
-    CF["AWS CloudFront (CDN)<br/>- Applies: AWS WAF Block<br/>- Serves: Pre-Rendered Pages"]
+    Client["Client Browser / AI Bot /<br/>Corporate B2B API"]
     
-    %% Right-side Callouts
-    RateLimit["Rate Limits Bot Spam"]
-    EdgeISR["Edge ISR Frontend Layer<br/>(0 MB Host RAM)"]
+    CF["`AWS CloudFront CDN
+    * WAF block, bot rate-limiting
+    * Serves pre-rendered Edge ISR pages (0 MB host RAM)`"]
+
+    subgraph EC2 ["AWS EC2 t4g.micro Modulith Host (1 GB RAM)"]
+        direction TB
+        NGINX["`**NGINX Reverse Proxy**
+        Blue/Green upstream 8080/8081
+        zero-downtime swaps`"]
+        
+        Modulith["`**Go App Modulith Core (systemd)**
+        * REST API and core routing
+        * In-memory worker alert pool
+        * B2B token auth and Stripe webhook idempotency
+        * Background SQS long-poll consumer`"]
+        
+        Cache["`**Cache Layer Interface**
+        * Lean: sync.Map 
+        * Enterprise: ElastiCache Redis`"]
+        
+        NGINX --> Modulith --> Cache
+    end
+
+    RDS["`**AWS RDS PostgreSQL**
+    db.t4g.micro · Multi-AZ 
+    high availability`"]
     
-    %% AWS EC2 Modulith Layer
-    subgraph EC2 ["AWS EC2 INSTANCE (t4g.micro Modulith Host Node - 1 GB RAM Allocated)"]
-        Nginx["NGINX Reverse Proxy Layer<br/>- Blue/Green Upstream Ports<br/>[8080 / 8081]<br/>Configuration Matrix for<br/>Zero-Downtime Swaps"]
-        
-        subgraph GoCore ["GO APP MODULITH CORE (Systemd Key)"]
-            GoApp["- Go HTTP REST API & Core<br/>Routing Logic
-            <br/>- In-Memory Worker Alert Pool<br/>Loop (Evaluates targets via<br/>specific corridor index maps)
-            <br/>- B2B API Token Validation<br/>Middleware & Stripe Webhook<br/>Idempotency Check Controllers
-            <br/>- Background SQS Long-Polling<br/>Consumer (Pools writes into<br/>single DB transactions)"]
-        end
-        
-        CacheInterface{"CACHE LAYER INTERFACE"}
-        SyncMap["[Lean] sync.Map"]
-    end
-
-    %% Database & Logs
-    RDS[("AWS RDS PostgreSQL<br/>(db.t4g.micro - Multi-AZ<br/>High-Availability Map)")]
-    Logs["CloudWatch Log Groups"]
-
-    %% Pipeline & Lambda
-    subgraph GHA ["GITHUB ACTIONS PIPELINE VM"]
-        AgentPool["- Isolated LangGraph Agent Pool<br/>- Go AST Lexical Whitelist Linter<br/>- Statistical Outlier Canary"]
-    end
-
-    subgraph LambdaCluster ["Serverless AWS Lambda Clusters"]
-        Lambda["- Buffered via Standard AWS<br/>SQS<br/>- Normalized Residential Proxies"]
-    end
+    CW["`**CloudWatch Log Groups**
+    Zerolog structured JSON stream`"]
+    
+    GHA["`**GitHub Actions Pipeline VM**
+    * LangGraph agent pool
+    * Go AST whitelist linter
+    * Statistical outlier canary`"]
+    
+    Lambda["`**Serverless AWS Lambda Clusters**
+    * Buffered via standard AWS SQS
+    * Rotating residential proxies`"]
 
     %% Connections
-    Client -->|"(HTTPS / TLS via Geo-i18n & /b2b Routes)"| CF
-    RateLimit -.-> CF
-    EdgeISR -.-> CF
-    
-    CF -->|"(HTTP / Port 80)"| Nginx
-    Nginx -->|"(Localhost Ports 8080 / 8081<br/>Rerouting)"| GoApp
-    GoApp --> CacheInterface
-    CacheInterface --> SyncMap
-    SyncMap --> RDS
-    CacheInterface --> RDS
-    
-    RDS -->|"(Zerolog Structured JSON<br/>Stream)"| Logs
-    Logs -->|"(CloudWatch Metric Filter<br/>Trigger)"| GHA
-    GHA -->|"(Success: Code branch PR<br/>generated)"| Lambda
-
-    %% Styling
-    style CF fill:#f9f,stroke:#333
-    style EC2 fill:#fcfcfc
-    style GHA fill:#eee
+    Client -->|HTTPS / TLS| CF
+    CF -->|HTTP port 80| NGINX
+    Cache -->|persistent DB connection| RDS
+    RDS -->|app telemetry stream| CW
+    CW -->|metric filter fires repo dispatch webhook| GHA
+    GHA -->|success: PR merged and deployed| Lambda
+    Lambda -.->|scraped rates via SQS| Modulith
 ```
 
 ## Abstract Ingress & Routing Interface
@@ -99,19 +89,14 @@ flowchart TD
 ------------------------------
 ## 3. Data Pipeline & Agentic Systems
 Data collection is entirely decoupled from the primary application process, executing inside standalone, serverless AWS Lambda functions to prevent resource starvation or runtime leaks within the Modulith API.
+
 ```mermaid
 flowchart TD
-    Cron["EventBridge Cron"] --> Lambda["Lambda Scrapers"]
-    Lambda -->|"(Residential Proxy)"| MTP["Outbound MTP Targets"]
-    
-    Lambda -->|"(Standardized RateRecord<br/>Mapping)"| SQS["AWS SQS Ingestion Queue"]
-    SQS -->|"(Long-Poll Consumer Thread)"| GoMod["Go Modulith Single DB Client<br/>Connection"]
-    GoMod -->|"(Idempotent DB UPSERT<br/>Multi-Row Transactions)"| RDS_Engine[("AWS RDS PostgreSQL Multi-AZ<br/>Engine")]
-    
-    style Cron fill:#ff9900,color:#000
-    style Lambda fill:#ff9900,color:#000
-    style SQS fill:#ff9900,color:#000
-    style RDS_Engine fill:#336699,color:#fff
+    Cron["AWS EventBridge Cron"] --> Lam["AWS Lambda Scrapers"]
+    Lam -->|via rotating residential proxy| MTP["Outbound MTP Targets"]
+    Lam -->|standardized RateRecord<br/>mapping| SQS["AWS SQS Ingestion Queue"]
+    SQS -->|long-poll consumer thread| Mod["Go Modulith<br/>single DB client connection"]
+    Mod -->|idempotent multi-row insert| RDS["AWS RDS PostgreSQL<br/>Multi-AZ engine"]
 ```
 
 * Extract: Ingestion tasks execute inside individual AWS Lambda functions managed by an AWS EventBridge scheduler. To bypass anti-bot defenses, the Go-based Lambda clients drop the standard network client stack, use the uTLS library (github.com/refraction-networking/utls) to forge the TLS signatures of major consumer browsers, and route all outbound calls through a Rotating Residential Proxy Network to hide data center IP signatures.
