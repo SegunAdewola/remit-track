@@ -28,7 +28,7 @@ approach appears, a library misbehaves):
 ---
 
 ## Phase 0 - Bootstrap
-- [ ] 0.1 chore(build): confirm go.work ties shared, backend, lambdas; go mod init each. Test: `go build ./...` in each module.
+- [x] 0.1 chore(build): confirm go.work ties shared, backend, lambdas; go mod init each. Test: `go build ./...` in each module.
 - [ ] 0.2 chore(lint): add .golangci.yml (govet, staticcheck, errcheck, revive, gofumpt). Test: `golangci-lint run` exits clean on empty pkgs.
 - [ ] 0.3 chore(build): Makefile with test, lint, build, up (docker) targets. Test: `make test` runs.
 - [ ] 0.4 ci: backend-ci.yml runs go test + golangci-lint on PR. Test: workflow parses (act or push).
