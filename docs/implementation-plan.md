@@ -30,7 +30,7 @@ approach appears, a library misbehaves):
 ## Phase 0 - Bootstrap
 - [x] 0.1 chore(build): confirm go.work ties shared, backend, lambdas; go mod init each. Test: `go build ./...` in each module.
 - [ ] 0.2 chore(lint): add .golangci.yml (govet, staticcheck, errcheck, revive, gofumpt) using the v2 schema. Test: `golangci-lint config verify` passes. (A full `golangci-lint run` returns exit 5 on a module with no .go files; it becomes green once the first package lands at 1.1.)
-- [ ] 0.3 chore(build): Makefile with test, lint, build, up (docker) targets. The lint target skips modules that contain no .go files so it is clean on empty modules. Test: `make test` runs.
+- [ ] 0.3 chore(build): Makefile (test, lint, build, up/down targets) + dev docker-compose.yml (Postgres for Phase 2 integration tests). The test/lint/build targets skip modules with no .go files so they are clean on the empty workspace. Test: `make test` runs.
 - [ ] 0.4 ci: backend-ci.yml runs go test + golangci-lint on PR (via `make lint`, which skips empty modules). Test: workflow parses (act or push).
 
 ## Phase 1 - Shared domain (foundation, no dependencies)
@@ -115,6 +115,11 @@ approach appears, a library misbehaves):
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-07-11 [0.3] Two additions. (1) `go test ./...` also exits non-zero on a module with no
+  .go files (like golangci-lint), so the skip-empty guard now covers test/lint/build, not just
+  lint. (2) The plan named an `up (docker)` target but no step created the compose file it needs
+  and Phase 2 assumes a local Postgres; 0.3 now also adds a minimal dev docker-compose.yml
+  (Postgres only). No ADR — dev tooling, not architecture.
 - 2026-07-10 [0.2-0.4] golangci-lint v2 returns exit 5 (not clean) on a module with zero .go
   files, so the original 0.2 test ("run exits clean on empty pkgs") was unachievable. Decision
   (Option A): 0.2's acceptance is now `golangci-lint config verify`; the Makefile lint target and
