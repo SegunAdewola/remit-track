@@ -756,39 +756,3 @@ terraform apply tfplan
 
 </body>
 </html>
-remit-track/
-├── backend/
-│   ├── cmd/
-│   │   ├── api-server/         # Entrypoint for User REST API, B2B API (/v1/b2b/*), & Stripe webhooks
-│   │   │   └── main.go
-│   │   └── sqs-consumer/       # Entrypoint for background long-polling SQS thread & Alert Pool
-│   │       └── main.go
-│   ├── go.mod
-│   ├── go.sum
-│   └── internal/
-│       ├── cache/              # Lean Profile: sync.Map wrapper / Enterprise: ElastiCache Redis
-│       │   └── rate_cache.go
-│       ├── database/           # PostgreSQL connection pool & idempotent UPSERT executors
-│       │   └── postgres.go
-│       ├── models/             # Pure Domain Entities (0 external dependencies)
-│       │   ├── alert.go        # Target thresholds & trigger configurations
-│       │   ├── agent.go        # Failure contexts & payload metadata schema
-│       │   ├── marketing.go    # Masked outbound routing, promos, & links
-│       │   ├── quote.go        # Unified RateRecord structure
-│       │   └── user.go         # User profiles & Stripe tier status metadata
-│       ├── pipeline/           # INGESTION & DECOUPLING
-│       │   ├── alerting.go     # In-Memory Worker Alert Pool engine
-│       │   └── consumer.go     # SQS Long-poll thread coordinator
-│       └── server/             # Router, handlers, proxy redirects (/out/*), and middleware
-│           └── routes.go
-├── lambdas/                    # Go-based serverless deployment assets
-│   └── scrapers/               # Statically compiled binaries using uTLS & residential proxies
-│       ├── wise/
-│       │   └── main.go
-│       └── sendwave/
-│           └── main.go
-└── services/                   # Episodic automation tools (triggered on demand)
-    └── agentic-pipeline/       # Python + LangGraph self-healing stack (S3-hosted chroma_db)
-        ├── healer.py
-        ├── security_ast.py     # Go AST whitelist lexical linter security gate
-        └── requirements.txt
