@@ -29,9 +29,9 @@ approach appears, a library misbehaves):
 
 ## Phase 0 - Bootstrap
 - [x] 0.1 chore(build): confirm go.work ties shared, backend, lambdas; go mod init each. Test: `go build ./...` in each module.
-- [ ] 0.2 chore(lint): add .golangci.yml (govet, staticcheck, errcheck, revive, gofumpt) using the v2 schema. Test: `golangci-lint config verify` passes. (A full `golangci-lint run` returns exit 5 on a module with no .go files; it becomes green once the first package lands at 1.1.)
-- [ ] 0.3 chore(build): Makefile (test, lint, build, up/down targets) + dev docker-compose.yml (Postgres for Phase 2 integration tests). The test/lint/build targets skip modules with no .go files so they are clean on the empty workspace. Test: `make test` runs.
-- [ ] 0.4 ci: backend-ci.yml runs go test + golangci-lint on PR (via `make lint`, which skips empty modules). Test: workflow parses (act or push).
+- [x] 0.2 chore(lint): add .golangci.yml (govet, staticcheck, errcheck, revive, gofumpt) using the v2 schema. Test: `golangci-lint config verify` passes. (A full `golangci-lint run` returns exit 5 on a module with no .go files; it becomes green once the first package lands at 1.1.)
+- [x] 0.3 chore(build): Makefile (test, lint, build, up/down targets) + dev docker-compose.yml (Postgres for Phase 2 integration tests). The test/lint/build targets skip modules with no .go files so they are clean on the empty workspace. Test: `make test` runs.
+- [x] 0.4 ci: backend-ci.yml runs `make lint` + `make test` on PR and push to main; Go version read from go.work, golangci-lint pinned to the local version. Test: `actionlint` passes.
 
 ## Phase 1 - Shared domain (foundation, no dependencies)
 - [ ] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
@@ -115,6 +115,10 @@ approach appears, a library misbehaves):
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-07-11 [0.4] Validate "workflow parses" with actionlint (+ shellcheck) locally instead of
+  act/push: act needs Docker and push is remote, while actionlint checks the Actions schema and
+  shell-checks run: scripts. This is now the standard check for every workflow step (9.5, 10.7,
+  11.6). Dev tool, installed via Homebrew. No ADR.
 - 2026-07-11 [0.3] Two additions. (1) `go test ./...` also exits non-zero on a module with no
   .go files (like golangci-lint), so the skip-empty guard now covers test/lint/build, not just
   lint. (2) The plan named an `up (docker)` target but no step created the compose file it needs
