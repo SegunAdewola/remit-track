@@ -29,9 +29,9 @@ approach appears, a library misbehaves):
 
 ## Phase 0 - Bootstrap
 - [x] 0.1 chore(build): confirm go.work ties shared, backend, lambdas; go mod init each. Test: `go build ./...` in each module.
-- [ ] 0.2 chore(lint): add .golangci.yml (govet, staticcheck, errcheck, revive, gofumpt). Test: `golangci-lint run` exits clean on empty pkgs.
-- [ ] 0.3 chore(build): Makefile with test, lint, build, up (docker) targets. Test: `make test` runs.
-- [ ] 0.4 ci: backend-ci.yml runs go test + golangci-lint on PR. Test: workflow parses (act or push).
+- [ ] 0.2 chore(lint): add .golangci.yml (govet, staticcheck, errcheck, revive, gofumpt) using the v2 schema. Test: `golangci-lint config verify` passes. (A full `golangci-lint run` returns exit 5 on a module with no .go files; it becomes green once the first package lands at 1.1.)
+- [ ] 0.3 chore(build): Makefile with test, lint, build, up (docker) targets. The lint target skips modules that contain no .go files so it is clean on empty modules. Test: `make test` runs.
+- [ ] 0.4 ci: backend-ci.yml runs go test + golangci-lint on PR (via `make lint`, which skips empty modules). Test: workflow parses (act or push).
 
 ## Phase 1 - Shared domain (foundation, no dependencies)
 - [ ] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
@@ -115,4 +115,8 @@ approach appears, a library misbehaves):
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
-- (none yet)
+- 2026-07-10 [0.2-0.4] golangci-lint v2 returns exit 5 (not clean) on a module with zero .go
+  files, so the original 0.2 test ("run exits clean on empty pkgs") was unachievable. Decision
+  (Option A): 0.2's acceptance is now `golangci-lint config verify`; the Makefile lint target and
+  CI skip modules that have no .go files, so linting is clean on the empty workspace and self-heals
+  as packages land. No ADR — tooling behavior, not architecture.
