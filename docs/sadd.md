@@ -78,7 +78,7 @@ flowchart TD
     S3 -->|origin fetch| CF
 ```
 
-   1. **Static Build Ingestion Platform**: The frontend application package (`/apps/ssr-frontend`) is developed using Next.js. During continuous delivery deployment steps, it compiles directly into flat, static HTML and asset arrays.
+   1. **Static Build Ingestion Platform**: The frontend application package (`/frontend`) is developed using Next.js. During continuous delivery deployment steps, it compiles directly into flat, static HTML and asset arrays.
 
    2. **CDN Distribution Layer**: These pre-compiled pages are hosted inside an **AWS S3 Bucket** and distributed using **AWS CloudFront**. When an AI search engine, scraping bot (e.g., PerplexityBot), or standard user requests content, CloudFront resolves the connection directly from edge cache memory, ensuring **0 MB memory allocation** on your core host machine.
 
@@ -104,7 +104,7 @@ flowchart TD
 ------------------------------
 ## Section B: Core Backend Modulith, In-Memory Alert Engine, & B2B Layer
 ### Architectural Design & Implementation Blueprint
-The core application (`/apps/remittrack-api`) is constructed inside a single Go compiled modulith binary package running under **Linux Systemd Process Supervision** on an **AWS EC2 `t4g.micro`** virtual node.
+The core application (`/backend`) is constructed inside a single Go compiled modulith binary package running under **Linux Systemd Process Supervision** on an **AWS EC2 `t4g.micro`** virtual node.
 ```mermaid
 flowchart TD
     SQS["SQS Message Queue"]
@@ -228,10 +228,10 @@ flowchart TD
     I3 --> Deploy
 ```
 
-   1. **The Terraform Infrastructure Automation Engine**: The cloud footprint is fully managed as code within the `/terraform/` repository directory. When modifications pass verification tests, continuous integration systems call the deployment toolchain:
+   1. **The Terraform Infrastructure Automation Engine**: The cloud footprint is fully managed as code within the `/infra/terraform/` repository directory. When modifications pass verification tests, continuous integration systems call the deployment toolchain:
 
         ```bash
-        cd terraform
+        cd infra/terraform/envs/lean
         terraform init
         terraform plan -out=tfplan          # posted to the PR for human review
         # apply runs only after manual approval on the protected prod environment
@@ -246,7 +246,7 @@ flowchart TD
 
 ### Product Engineering & Operational Configurations
 
-* **Terraform SQS Configuration Block (`terraform/sqs.tf)`**:
+* **Terraform SQS Configuration Block (`infra/terraform/modules/messaging/main.tf`)**:
 ```hcl
 resource "aws_sqs_queue" "remittrack_ingestion_queue" {
   name                      = "remittrack-rate-ingestion"
