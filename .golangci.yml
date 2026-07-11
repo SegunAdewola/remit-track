@@ -1,0 +1,13 @@
+# golangci-lint v2 configuration, shared by all modules in the workspace.
+# The `standard` set already enables errcheck, govet, ineffassign, staticcheck,
+# and unused; we add revive on top. gofumpt is a formatter, configured separately.
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - revive
+
+formatters:
+  enable:
+    - gofumpt
