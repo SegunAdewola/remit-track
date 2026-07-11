@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.go) gofmt -w \"$f\";; esac; true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "in=$(cat); echo \"$in\" | grep -Eq 'rm[[:space:]]+-rf|git[[:space:]]+push[[:space:]].*--force|mkfs|dd[[:space:]]+if=' && { echo 'Guard: destructive command blocked. Ask me first.' >&2; exit 2; }; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
