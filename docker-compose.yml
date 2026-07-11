@@ -1,0 +1,23 @@
+# Local development dependencies. Not a production topology — the real infra
+# lives in infra/terraform. This exists so `make up` gives Phase 2 integration
+# tests a real Postgres to run against. Credentials are dev-only by design.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: remittrack-postgres
+    environment:
+      POSTGRES_USER: remittrack
+      POSTGRES_PASSWORD: remittrack
+      POSTGRES_DB: remittrack
+    ports:
+      - "5432:5432"
+    volumes:
+      - remittrack-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U remittrack -d remittrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  remittrack-pgdata:
