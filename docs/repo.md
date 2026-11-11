@@ -6,8 +6,9 @@ This tree is the physical expression of the SADD. Module boundaries, the lean/en
 remit-track/
 ├── shared/                              # Shared Go module (own go.mod): single source of truth
 │   ├── go.mod
-│   ├── raterecord/                      # Canonical RateRecord domain type
+│   ├── raterecord/                      # Canonical RateRecord quote (amounts, fees, methods, class); EffectiveRate ranking key
 │   ├── corridor/                        # Currency-pair and corridor value types
+│   ├── money/                           # Money value type (integer minor units + ISO currency)
 │   └── scrapeharness/                   # uTLS transport, proxy rotation, retry/backoff
 ├── backend/                             # Go modulith core (own go.mod)
 │   ├── go.mod
@@ -77,7 +78,7 @@ remit-track/
 │   │   │   ├── data/                    # RDS Multi-AZ, ElastiCache (enterprise)
 │   │   │   ├── messaging/               # SQS and dead-letter queue
 │   │   │   ├── ingestion/               # Lambda functions, EventBridge cron
-│   │   │   ├── edge/                    # CloudFront, S3, Lambda@Edge (ISR)
+│   │   │   ├── edge/                    # CloudFront, S3 origin, scoped rebuild + s-maxage TTL (ISR; invalidation is deploy-only)
 │   │   │   └── compute/                 # EC2 (lean) / ALB + Fargate (enterprise)
 │   │   ├── envs/
 │   │   │   ├── lean/                    # Single EC2 + single RDS, prevent_destroy guards
@@ -96,7 +97,7 @@ remit-track/
 │       │   └── remittrack.service      # Single unit for the modulith binary
 │       └── swap.sh                      # Rewrite upstream, health-check, reload nginx
 ├── config/
-│   └── provider_map.json                # Scraper registry (scrapers and compliance agent)
+│   └── provider_map.json                # Provider registry: per-provider ingestion strategy (api/scrape), quote endpoint, and pricing config (pay-in/out methods, rate classes, per-corridor overrides); read by scrapers, compliance, onboarding
 ├── tests/
 │   └── regression/                      # Chaos sandbox for the canary/regression gate
 │       ├── docker-compose.yml           # Mock proxy network
@@ -106,7 +107,7 @@ remit-track/
 │       ├── backend-ci.yml               # go test ./..., vet, build
 │       ├── backend-cd.yml               # Cross-compile, upload, SSH swap.sh (prod approval)
 │       ├── frontend-ci.yml              # Lint, typecheck, next build
-│       ├── frontend-cd.yml              # Build and push static to S3, CloudFront invalidate
+│       ├── frontend-cd.yml              # Build and push static to S3, CloudFront invalidate (deploy only, not per-tick)
 │       ├── infra-plan.yml               # terraform plan on PR, posts plan for review
 │       ├── infra-apply.yml              # terraform apply on manual approval
 │       └── agent-heal.yml               # Episodic self-healing runner
@@ -129,4 +130,6 @@ remit-track/
 4. **CI and CD are distinct; infra is human-gated.** `*-ci` runs tests and builds on every PR. `*-cd` ships. `infra-plan.yml` posts a `terraform plan` to the PR and `infra-apply.yml` runs only after manual approval, matching the SADD's review gate.
 
 5. **One modulith binary, by design.** The API, chat, alert pool, and SQS ingestion consumer all run inside a single binary under one systemd unit (`remittrack.service`). This keeps the SADD's in-process hot path intact: the consumer writes a batch and the in-memory alert pool evaluates it immediately, with no DB round trip. The ingestion goroutine must `recover()` at its boundary so a scraper-side panic cannot take down the API. The `internal/ingestion` and `internal/alerting` packages are the seams to extract into a separate `cmd/` entrypoint later, if and when ingestion needs to scale independently.
+
+6. **Roadmap items not yet in the tree.** Three SADD features are intentionally deferred and will add structure when scheduled (see implementation-plan Phase 13): the operator market intelligence dashboard (a rollup-backed, B2B-gated read surface; v1-vs-deferred still to be decided), the enterprise compute profile (ALB + ECS Fargate, already stubbed at `infra/terraform/modules/compute`), and the tier reconciliation job. API-first ingestion is already reflected: each `provider_map.json` entry declares an `api` or `scrape` strategy, and the scraper Lambdas try the official API before falling back.
 

@@ -34,16 +34,18 @@ approach appears, a library misbehaves):
 - [x] 0.4 ci: backend-ci.yml runs `make lint` + `make test` on PR and push to main; Go version read from go.work, golangci-lint pinned to the local version. Test: `actionlint` passes.
 
 ## Phase 1 - Shared domain (foundation, no dependencies)
-- [ ] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
-- [ ] 1.2 feat(shared): RateRecord struct + Validate (positive rate, known pair, non-zero timestamp). Test: valid and each invalid case.
-- [ ] 1.3 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
+- [x] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
+- [ ] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
+- [ ] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate, PayIn, PayOut, Class, Timestamp) + Validate. Test: valid and each invalid case - non-positive amounts, negative fees, currency/side mismatch, non-positive rate, unknown pair, empty method, bad class, zero timestamp (table-driven unit).
+- [ ] 1.4 feat(shared): RateRecord.EffectiveRate() = ReceiveAmount / TotalPaid, the ranking key. Test: known ratio + guards (unit).
+- [ ] 1.5 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
 
 ## Phase 2 - Persistence (the source of truth)
-- [ ] 2.1 feat(backend): internal/models structs (Quote view, AlertConfig, User) + validation. Test: zero-value and validation (unit).
-- [ ] 2.2 feat(database): migration 0001 historical_rates + current_rates + UNIQUE(provider,currency_pair,scrape_timestamp). Test: up/down applies (integration, real Postgres).
+- [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
+- [ ] 2.2 feat(database): migration 0001 historical_rates + current_rates with full quote columns (send_amount, total_paid, receive_amount, fees, offered_rate, pay_in, pay_out, rate_class; money as integer minor units) + UNIQUE(provider, currency_pair, send_amount, pay_in, pay_out, rate_class, scrape_timestamp). Test: up/down applies (integration, real Postgres).
 - [ ] 2.3 feat(database): connection pool + config from env. Test: connect and ping (integration).
-- [ ] 2.4 feat(database): idempotent UPSERT into historical_rates (ON CONFLICT DO NOTHING). Test: duplicate ignored, distinct timestamps kept (integration).
-- [ ] 2.5 feat(database): current_rates upsert on insert + read-latest query. Test: one row per pair, historical not scanned (integration).
+- [ ] 2.4 feat(database): idempotent UPSERT into historical_rates (ON CONFLICT on the full quote key DO NOTHING). Test: duplicate ignored, distinct timestamps/amounts kept (integration).
+- [ ] 2.5 feat(database): current_rates upsert on insert + read-latest-by-quote-key query ranked by effective rate. Test: one row per quote key, historical not scanned (integration).
 
 ## Phase 3 - Cache
 - [ ] 3.1 feat(cache): RateCache interface + sync.Map implementation. Test: get/set/miss + concurrent access (unit).
@@ -53,18 +55,19 @@ approach appears, a library misbehaves):
 - [ ] 4.2 feat(ingestion): consumer long-polls a queue, decodes RateRecord, writes via database. Test: mock SQS -> rows in Postgres (integration).
 - [ ] 4.3 feat(ingestion): recover() boundary + poison-message handling (log/DLQ, loop survives). Test: bad message does not kill the loop (integration).
 
-## Phase 5 - Alerting (in-memory, coupled to ingestion)
-- [ ] 5.1 feat(alerting): corridor index map build/refresh from AlertConfig. Test: build and lookup (unit).
-- [ ] 5.2 feat(alerting): evaluation loop fires on threshold crossing only. Test: crossing fires, non-crossing does not (unit).
-- [ ] 5.3 feat(alerting): notification dispatch interface (SES behind iface, fake in test). Test: fired alert dispatches once (unit).
-- [ ] 5.4 feat(backend): wire ingestion batch completion to alerting evaluation in-process. Test: batch write triggers eval (integration).
+## Phase 5 - Alerting (in-memory evaluation, durable rules + delivery)
+- [ ] 5.1 feat(alerting): corridor index map build/refresh from AlertConfig; DB is source of truth, index rebuilt on boot. Test: build, lookup, and rebuild-from-DB (unit).
+- [ ] 5.2 feat(alerting): evaluation loop fires on threshold crossing only, with persisted per-alert trigger state (armed/triggered) for edge-triggered dedup. Test: crossing fires once, stays-crossed does not re-fire, re-arms after reset (unit).
+- [ ] 5.3 feat(alerting): transactional outbox - firing writes a notifications row (status=pending) in the SAME tx as the trigger-state flip. Test: fired alert commits a pending outbox row atomically (integration).
+- [ ] 5.4 feat(alerting): notification dispatcher drains pending outbox via SES (behind iface, fake in test), marks sent, dedups by notification_id. Test: pending row delivered once; crash-before-send leaves pending; retry does not double-send (unit).
+- [ ] 5.5 feat(backend): wire ingestion batch completion to alerting evaluation in-process. Test: batch write triggers eval (integration).
 
 ## Phase 6 - Server (read path first, then edges)
-- [ ] 6.1 feat(server): current-rates-by-corridor handler backed by cache/DB. Test: 200 + payload (httptest integration).
+- [ ] 6.1 feat(server): current-rates-by-corridor handler backed by cache/DB, ranked by effective rate (received/paid), standard rate class only with promos flagged. Test: 200 + correctly ranked payload (httptest integration).
 - [ ] 6.2 feat(server): logging + panic-recovery middleware. Test: handler panic returns 500, server survives (unit).
 - [ ] 6.3 feat(server): token-bucket ratelimit middleware. Test: over-limit returns 429 (unit).
 - [ ] 6.4 feat(server): B2B token auth middleware for /api/v1/b2b/*. Test: valid vs invalid key (integration).
-- [ ] 6.5 feat(server): Stripe webhook idempotency via evt_id ledger. Test: duplicate event ignored (integration).
+- [ ] 6.5 feat(server): Stripe webhook idempotency via evt_id ledger, plus users.tier derivation from subscription state. Test: duplicate event ignored; tier updates on event (integration).
 - [ ] 6.6 feat(server): masked /out/* redirect against allowlist. Test: approved 302, unknown 403 (unit).
 
 ## Phase 7 - Binary wiring
@@ -73,10 +76,11 @@ approach appears, a library misbehaves):
 
 ## Phase 8 - Scrapers (first full external slice)
 - [ ] 8.1 feat(shared): scrapeharness uTLS transport + proxy rotation + backoff. Test: builds client, honors HTTP_PROXY, retries (unit, fake transport).
-- [ ] 8.2 feat(lambdas): wise parser fixture -> RateRecord. Test: saved payload -> expected record (unit).
+- [ ] 8.2 feat(lambdas): wise quote parser: fixture -> RateRecord quote (amounts, fees, methods, rate class - the observed output). Test: saved payload -> expected quote (unit).
 - [ ] 8.3 feat(lambdas): wise handler pushes RateRecord to SQS. Test: fake SQS receives normalized message (unit).
 - [ ] 8.4 test(integration): wise -> SQS -> consumer -> Postgres end to end. Test: full path writes expected row.
 - [ ] 8.5 feat(lambdas): sendwave parser + handler (repeat 8.2-8.3). Test: fixture and SQS push.
+- [ ] 8.6 feat(lambdas): provider_map.json ingestion-strategy field + API-first client (official API preferred, scrape fallback on absence or failure). Test: api path chosen when present, falls back on failure (unit).
 
 ## Phase 9 - Infra + deploy (lean env)
 - [ ] 9.1 feat(infra): modules/messaging SQS + DLQ, prevent_destroy. Test: terraform validate + reviewed plan.
@@ -90,31 +94,46 @@ approach appears, a library misbehaves):
 - [ ] 10.1 chore(frontend): Next.js App Router init + tsconfig + eslint (Google) + prettier. Test: npm run build.
 - [ ] 10.2 feat(frontend): lib/schema JSON-LD builders (ExchangeRateSpecification, FAQPage), pure. Test: builder output shape (unit).
 - [ ] 10.3 feat(frontend): lib/api fetch current rates. Test: mock fetch (unit).
-- [ ] 10.4 feat(frontend): app/[locale]/exchange-rates/[corridor]/page.tsx ISR page + JSON-LD. Test: render + JSON-LD snapshot.
+- [ ] 10.4 feat(frontend): app/[locale]/exchange-rates/[corridor]/page.tsx static page + JSON-LD, with a real (build-time) rate baked into the HTML as the crawler-visible baseline and no-JS fallback. Test: render + JSON-LD snapshot + baked rate present in server HTML.
 - [ ] 10.5 feat(frontend): hreflang + canonical tags in layout. Test: header tags present (unit).
-- [ ] 10.6 feat(frontend): revalidation webhook endpoint + ingestion fires it. Test: webhook triggers revalidate (integration).
-- [ ] 10.7 ci: frontend-cd.yml build + push to S3 + CloudFront invalidate. Test: workflow parses.
+- [ ] 10.6 feat(frontend): revalidation webhook endpoint + ingestion fires it; scoped rebuild writes S3 objects with a short s-maxage TTL and does NOT invalidate CloudFront per tick. Test: webhook triggers revalidate + written objects carry Cache-Control s-maxage (integration).
+- [ ] 10.7 ci: frontend-cd.yml build + push to S3 + CloudFront invalidate (deploy path only, for template changes; the per-tick ingestion path relies on s-maxage TTL, see 10.6). Test: workflow parses.
+- [ ] 10.8 feat(frontend): live rate hydration on corridor pages - small client fetch of the cached rates API that freshens the baked-in baseline, degrading gracefully to the baked value when JS is off. Interactive surfaces (alerts/dashboard/chat) are client-rendered against the same API, no static rebuild. Test: hydration updates the number; no-JS shows baked rate (unit + render).
 
-## Phase 11 - Agents (they observe a system that must already exist)
-- [ ] 11.1 feat(services): services/shared LLM client, S3/Chroma helper, PR opener (all mockable). Test: mocked calls (unit).
-- [ ] 11.2 feat(services): agent_healer/linter.go AST allowlist gate. Test: allowed passes; forbidden import and //go:linkname rejected (table-driven unit).
-- [ ] 11.3 feat(services): agent_healer/healer.py RAG -> candidate -> linter -> canary -> PR. Test: mocked pipeline never auto-merges (unit).
-- [ ] 11.4 feat(services): compliance_sentinel diffs robots/ToS, PRs provider_map toggle. Test: change detected -> PR (mocked unit).
-- [ ] 11.5 feat(services): onboarding_agent sniff -> scraper gen -> PR. Test: mocked capture -> PR (unit).
-- [ ] 11.6 ci: agent-heal.yml on repository_dispatch. Test: workflow parses.
+## Phase 11 - Agent guardrails, corpus, and gates (build before any code generation)
+- [ ] 11.1 feat(observability): structured scraper error/empty-payload emission + CloudWatch metric filter + repository_dispatch webhook. Test: an error log produces a dispatch payload (unit + integration).
+- [ ] 11.2 chore(tests): regression/docker-compose.yml mock proxy network that serves historical payloads. Test: compose up/down.
+- [ ] 11.3 test(tests): failure_registry.json schema + first case. Test: schema validates.
+- [ ] 11.4 feat(services): agent_healer/linter.go AST allowlist gate. Test: allowed passes; forbidden import and //go:linkname rejected (table-driven unit).
+- [ ] 11.5 feat(services): canary statistical gate (3-sigma + provider corridor + cold-start skip). Test: pass/fail bands, new provider held (unit).
+- [ ] 11.6 test(integration): regression replay harness; each registry case replays green.
 
-## Phase 12 - Regression + hardening
-- [ ] 12.1 chore(tests): regression/docker-compose.yml mock proxy network. Test: compose up/down.
-- [ ] 12.2 test(tests): failure_registry.json schema + first case. Test: schema validates.
-- [ ] 12.3 test(integration): regression replay harness; each registry case replays green.
-- [ ] 12.4 feat(services): canary statistical gate (3-sigma + provider corridor + cold-start skip). Test: pass/fail bands, new provider held (unit).
-- [ ] 12.5 ci: wire regression into the PR gate. Test: failing case blocks merge.
+## Phase 12 - Agents (rely on the Phase 11 guardrails and corpus)
+- [ ] 12.1 feat(services): services/shared LLM client, S3/Chroma helper, PR opener (all mockable). Test: mocked calls (unit).
+- [ ] 12.2 feat(services): agent_healer/healer.py RAG -> candidate -> linter -> canary -> PR, max 3 repair loops then escalate. Test: mocked pipeline never auto-merges; stops after 3 (unit).
+- [ ] 12.3 feat(services): compliance_sentinel diffs robots/ToS, PRs provider_map toggle. Test: change detected -> PR (mocked unit).
+- [ ] 12.4 feat(services): onboarding_agent sniff -> scraper gen -> PR (last: highest blast radius). Test: mocked capture -> PR (unit).
+- [ ] 12.5 ci: agent-heal.yml on repository_dispatch. Test: workflow parses.
+- [ ] 12.6 ci: wire regression into the PR gate. Test: failing case blocks merge.
+
+## Phase 13 - Deferred / roadmap (pending explicit scope decisions)
+- [ ] 13.1 feat(backend): operator dashboard rollup (materialized view or summary table) + read-only B2B-gated endpoints. DECISION NEEDED: v1 or deferred.
+- [ ] 13.2 feat(infra): enterprise compute profile (CloudFront -> ALB -> ECS Fargate) behind REMITTRACK_INFRA_PROFILE; resolve alert-pool ownership (ElastiCache vs single owner) before enabling. Deferred until scale requires it.
+- [ ] 13.3 feat(server): tier reconciliation job (periodic Stripe re-read to correct missed-webhook drift). Deferred; safe to add post-launch.
+- [ ] 13.4 feat(server): on-demand live quoting for exact amounts - fan-out to provider quote endpoints, deadline-bounded, single-flight coalesced, short-TTL cached, partial results tolerated; API-quote providers only. Deferred until the benchmark cache proves insufficient.
+- [ ] 13.5 feat(backend): landing default resolver - send country from CloudFront-Viewer-Country, corridor from a popularity prior + remembered selector, amount from user-last -> corridor median -> global fallback (static shows population default, hydration personalizes). Deferred; needs usage data.
+- [ ] 13.6 feat(backend): demand-shaped benchmark amounts - track per-corridor requested-amount distribution and tune the precomputed benchmark set (higher / more granular) to maximize cache hit rate. Deferred; needs traffic.
 
 ---
 
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-09-19 [Phase 1/2/6/8/13, docs/architecture] Reshaped the rate model into a fee-inclusive quote so comparisons are accurate. RateRecord grows from a single `Rate` into a quote (Money-typed SendAmount/TotalPaid/ReceiveAmount/Fees, OfferedRate, PayIn/PayOut, rate Class) captured as the provider's *observed* output — never a reconstructed fee formula, because a miscomputed price is indistinguishable from a correct one (the worst failure for a comparison product). Ranking is by effective rate = received/paid, standard class only, promos shown as a badge. Money is integer minor units (no float). Schema: historical_rates/current_rates carry the full quote columns and the idempotency key expands to (provider, currency_pair, send_amount, pay_in, pay_out, rate_class, scrape_timestamp). Read path serves benchmark-cached quotes by default, with on-demand deadline-bounded, single-flighted, short-TTL-cached live quoting for exact amounts (API-quote providers only); the landing default resolves send country from CloudFront-Viewer-Country, corridor from a popularity prior + remembered selector, and amount from user-last → corridor median → global fallback. Plan: Phase 1 reordered/expanded (1.2 Money, 1.3 enriched RateRecord + Validate, 1.4 EffectiveRate, 1.5 JSON); Phase 2 schema/keys updated (2.1/2.2/2.4/2.5); 6.1 ranks by effective rate; 8.2 emits quotes; roadmap 13.4-13.6 added (live quoting, default resolver, demand-shaped benchmarks). Updated sadd.md Sections B & C (+ trade-offs) and design.md. No ADR yet.
+- 2026-09-18 [Phase 10, docs/architecture] Added an explicit per-route rendering strategy to resolve the "why not a plain SPA + cached API" question. Rendering mode is chosen per route by "does a crawler need to see this": public corridor pages are statically rendered with a real rate baked into the HTML (Googlebot only runs JS on a deferred pass, and PerplexityBot/GPTBot run none, so a client-only page is blank to the AI crawlers we court); logged-in/interactive surfaces (alerts, dashboard, chat, B2B console) are client-rendered against the cached API with no static rebuild. Adopted "static baseline + live client hydration" for corridor pages: HTML ships a build-time rate (crawler-visible, no-JS fallback), a small client fetch freshens it live. This decouples crawler freshness (hourly is ample) from human freshness (sub-minute via API), letting the static rebuild cadence relax below the 5-minute ingestion tick and shrinking the edge pipeline. Updated sadd.md Section A (new blueprint item 6 + trade-off bullet), and Phase 10 (10.4 bakes the baseline rate, new 10.8 for hydration + interactive surfaces). No ADR yet.
+- 2026-09-18 [Phase 5, docs/architecture] Closed a durability gap in the alert pool. Previously the design described only an in-memory `map[string][]AlertConfig` evaluated by a worker pool with fire-and-forget SES dispatch, which risked losing alert rules on restart and dropping (or duplicating) notifications on a crash between "fired" and "sent". New design separates disposable compute from durable state: (A) alert rules + per-alert trigger state are persisted in PostgreSQL as source of truth, and the in-memory index is a cache rebuilt on boot; (B) delivery uses a transactional outbox — the trigger-state flip and a `notifications` (status=pending) row commit in one tx, and a separate dispatcher drains pending rows via SES, marking sent and deduping by notification_id, so at-least-once delivery replaces silent loss. Firing is edge-triggered (armed→triggered→armed) to avoid re-firing a still-crossed threshold every batch. This durability axis is orthogonal to the existing in-memory-vs-ElastiCache scaling trade-off. Updated sadd.md Section B (blueprint item 2 + new trade-off bullet), design.md alert-pool feature bullet, and Phase 5 steps (now 5.1-5.5, adding the outbox write and dispatcher). No ADR yet.
+- 2026-09-18 [10.6/10.7, docs/architecture] Reversed the per-tick CloudFront invalidation decision from 2026-07-11. The ISR ingestion path (every 5 min, per corridor) now relies on a short `Cache-Control: s-maxage` TTL instead of calling the Invalidation API. Rationale: invalidating ~288×/day per corridor costs $0.005/path beyond the 1,000/month free tier — roughly $860/mo at 20 corridors, $2,000+/mo at 50 — for a freshness guarantee a TTL aligned to the cadence already provides. Tradeoff: a page may be up to ~1 cadence stale at a given edge; immaterial for crawler/SEO freshness and covered by the visible "last updated" timestamp. If instant freshness is ever needed the escalation is versioned object keys + pointer, not per-tick invalidation. Invalidation is retained for the frontend *deploy* path only (frontend-cd.yml, 10.7), where the HTML template changes rarely and unpredictably. Updated sadd.md Section A (blueprint step 3 + diagram + new trade-off bullet), design.md ISR bullet, repo.md edge/ and frontend-cd.yml comments. ADR still to be written (folds into the pending ISR ADR from 2026-07-11).
+- 2026-07-11 [docs/architecture] SADD and design.md reconciliation. Resolved three contradictions: (1) ISR regeneration is a scoped rebuild-to-S3 then CloudFront invalidation, not Lambda@Edge (Lambda@Edge deferred until per-user rendering is needed); (2) TLS terminates at CloudFront, NGINX serves HTTP :80 with the origin locked to CloudFront; (3) B2B path standardized to /api/v1/b2b/*. Added to the SADD: API-first fallback ingestion (provider_map strategy field, now plan step 8.6), operator dashboard (rollup-sourced, v1 TBD), enterprise ALB/Fargate compute profile + alert-pool coupling note, subscription tiers (users.tier, folded into 6.5) + reconciliation, JA4/HTTP2 emulation detail, 3-repair-loop cap, LLM chat deep-dive, and the durable-queue-over-in-process-channel trade-off. Deepened Section E (self-improving loop, six-gate trust ladder) and Section 3 (failure registry as living corpus, chaos build-order). Reordered plan so guardrails + corpus + gates (Phase 11) precede agents (Phase 12); added Phase 13 roadmap for deferred items. ADRs still to be written for the three contradiction resolutions and the enterprise-compute/alert-pool coupling. Architecture-level.
 - 2026-07-11 [0.4] Validate "workflow parses" with actionlint (+ shellcheck) locally instead of
   act/push: act needs Docker and push is remote, while actionlint checks the Actions schema and
   shell-checks run: scripts. This is now the standard check for every workflow step (9.5, 10.7,
