@@ -126,6 +126,32 @@ approach appears, a library misbehaves):
 
 ---
 
+## Open follow-ups (not yet decided; resolve at the trigger shown)
+Items raised in discussion that need a decision or a plan edit. When one is resolved, delete it here
+and record the outcome in the Decisions & changes log below.
+
+- [ ] (after 1.2 green, before 1.3) Refactor: corridor calls money's exported currency check and its
+  private copy is deleted. Currency is the more fundamental concept, so corridor -> money, not the
+  reverse. Corridor tests must stay green unedited.
+- [ ] (before 1.3) Rewrite raterecord test + stub to the new 1.3 quote shape. The current files still
+  target the old single-`Rate float64` RateRecord.
+- [ ] (before 1.3) Decide what "unknown pair" means: ISO-shape only, an ISO 4217 list, or a
+  supported-corridors allowlist. Leaning: Money stays shape-only; the semantic check is a
+  supported-corridors allowlist at the RateRecord/ingestion boundary.
+- [ ] (when display formatting is needed) Evaluate golang.org/x/text/currency for ISO 4217 codes and
+  per-currency minor-unit exponents (JPY=0, USD=2). New dependency: discuss tradeoff first.
+- [ ] (before 2.1, plan mode + likely ADR) Modulith boundaries: replace the planned kind-grouped
+  `internal/models` + shared `internal/database` with domain-owned modules (e.g. rates, alerting,
+  users/billing), each owning its types and tables (Parnas: hide each module's secret). Update
+  repo.md, sadd.md and Phases 2/5/6 accordingly.
+- [ ] (before 7.1) Write performance hypotheses as numbers (e.g. cached read p99 at N rps, consumer
+  records/s, alert eval latency at 10k rules) in sadd.md.
+- [ ] (after 7.1) Add a step for a k6 baseline load test with thresholds as pass/fail (dev tool via
+  Homebrew, like actionlint). Prometheus metrics via client_golang later: new dependency, discuss.
+- [ ] (Phase 10) Adapt the V0-built frontend for v1: split `"use client"` components into a server
+  shell + client islands so corridor pages render the rate server-side; decide on shadcn/Tailwind
+  dependencies. Confirm where the V0 export lives.
+
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
