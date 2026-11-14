@@ -35,7 +35,7 @@ approach appears, a library misbehaves):
 
 ## Phase 1 - Shared domain (foundation, no dependencies)
 - [x] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
-- [ ] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
+- [x] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
 - [ ] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate, PayIn, PayOut, Class, Timestamp) + Validate. Test: valid and each invalid case - non-positive amounts, negative fees, currency/side mismatch, non-positive rate, unknown pair, empty method, bad class, zero timestamp (table-driven unit).
 - [ ] 1.4 feat(shared): RateRecord.EffectiveRate() = ReceiveAmount / TotalPaid, the ranking key. Test: known ratio + guards (unit).
 - [ ] 1.5 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
@@ -130,9 +130,6 @@ approach appears, a library misbehaves):
 Items raised in discussion that need a decision or a plan edit. When one is resolved, delete it here
 and record the outcome in the Decisions & changes log below.
 
-- [ ] (after 1.2 green, before 1.3) Refactor: corridor calls money's exported currency check and its
-  private copy is deleted. Currency is the more fundamental concept, so corridor -> money, not the
-  reverse. Corridor tests must stay green unedited.
 - [ ] (before 1.3) Rewrite raterecord test + stub to the new 1.3 quote shape. The current files still
   target the old single-`Rate float64` RateRecord.
 - [ ] (before 1.3) Decide what "unknown pair" means: ISO-shape only, an ISO 4217 list, or a
@@ -154,6 +151,11 @@ and record the outcome in the Decisions & changes log below.
 
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
+
+- 2026-11-13 [1.2 follow-up] corridor now validates codes via money.IsValidCurrency and its private
+  copy is deleted, so there is one definition of a well-formed currency code. Dependency direction is
+  corridor -> money because a pair is built from currencies, not the reverse. Corridor tests stayed
+  green unedited. No ADR.
 
 - 2026-09-19 [Phase 1/2/6/8/13, docs/architecture] Reshaped the rate model into a fee-inclusive quote so comparisons are accurate. RateRecord grows from a single `Rate` into a quote (Money-typed SendAmount/TotalPaid/ReceiveAmount/Fees, OfferedRate, PayIn/PayOut, rate Class) captured as the provider's *observed* output — never a reconstructed fee formula, because a miscomputed price is indistinguishable from a correct one (the worst failure for a comparison product). Ranking is by effective rate = received/paid, standard class only, promos shown as a badge. Money is integer minor units (no float). Schema: historical_rates/current_rates carry the full quote columns and the idempotency key expands to (provider, currency_pair, send_amount, pay_in, pay_out, rate_class, scrape_timestamp). Read path serves benchmark-cached quotes by default, with on-demand deadline-bounded, single-flighted, short-TTL-cached live quoting for exact amounts (API-quote providers only); the landing default resolves send country from CloudFront-Viewer-Country, corridor from a popularity prior + remembered selector, and amount from user-last → corridor median → global fallback. Plan: Phase 1 reordered/expanded (1.2 Money, 1.3 enriched RateRecord + Validate, 1.4 EffectiveRate, 1.5 JSON); Phase 2 schema/keys updated (2.1/2.2/2.4/2.5); 6.1 ranks by effective rate; 8.2 emits quotes; roadmap 13.4-13.6 added (live quoting, default resolver, demand-shaped benchmarks). Updated sadd.md Sections B & C (+ trade-offs) and design.md. No ADR yet.
 - 2026-09-18 [Phase 10, docs/architecture] Added an explicit per-route rendering strategy to resolve the "why not a plain SPA + cached API" question. Rendering mode is chosen per route by "does a crawler need to see this": public corridor pages are statically rendered with a real rate baked into the HTML (Googlebot only runs JS on a deferred pass, and PerplexityBot/GPTBot run none, so a client-only page is blank to the AI crawlers we court); logged-in/interactive surfaces (alerts, dashboard, chat, B2B console) are client-rendered against the cached API with no static rebuild. Adopted "static baseline + live client hydration" for corridor pages: HTML ships a build-time rate (crawler-visible, no-JS fallback), a small client fetch freshens it live. This decouples crawler freshness (hourly is ample) from human freshness (sub-minute via API), letting the static rebuild cadence relax below the 5-minute ingestion tick and shrinking the edge pipeline. Updated sadd.md Section A (new blueprint item 6 + trade-off bullet), and Phase 10 (10.4 bakes the baseline rate, new 10.8 for hydration + interactive surfaces). No ADR yet.
