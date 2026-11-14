@@ -36,7 +36,7 @@ approach appears, a library misbehaves):
 ## Phase 1 - Shared domain (foundation, no dependencies)
 - [x] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
 - [x] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
-- [ ] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate, PayIn, PayOut, Class, Timestamp) + Validate. Test: valid and each invalid case - non-positive amounts, negative fees, currency/side mismatch, non-positive rate, unknown pair, empty method, bad class, zero timestamp (table-driven unit).
+- [ ] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate float64, PayIn/PayOut as PayMethod, Class as RateClass, Timestamp) + Validate, plus RateClass.Valid over the closed set {standard, promo_first_transfer}. Validate is pure: it checks each field's own rule and currency/side matching only (Send/TotalPaid in Base, Receive in Quote, Fees in either side of the pair), never cross-field arithmetic, and checks the pair is well-formed (valid codes, Base != Quote) but NOT that it is a supported corridor (that allowlist check lives at ingestion, 4.2). Test: valid and each invalid case - empty provider, malformed pair, non-positive amounts, negative fees, currency/side mismatch, non-finite or non-positive rate, empty method, bad class, zero timestamp (table-driven unit).
 - [ ] 1.4 feat(shared): RateRecord.EffectiveRate() = ReceiveAmount / TotalPaid, the ranking key. Test: known ratio + guards (unit).
 - [ ] 1.5 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
 
@@ -52,7 +52,7 @@ approach appears, a library misbehaves):
 
 ## Phase 4 - Ingestion (SQS consumer, in-process)
 - [ ] 4.1 feat(ingestion): batch builder accumulates messages into multi-row batches by size and time. Test: batching rules (unit).
-- [ ] 4.2 feat(ingestion): consumer long-polls a queue, decodes RateRecord, writes via database. Test: mock SQS -> rows in Postgres (integration).
+- [ ] 4.2 feat(ingestion): consumer long-polls a queue, decodes RateRecord, validates it, rejects corridors not in the injected supported-corridors allowlist, writes via database. Test: mock SQS -> rows in Postgres; unsupported corridor rejected (integration).
 - [ ] 4.3 feat(ingestion): recover() boundary + poison-message handling (log/DLQ, loop survives). Test: bad message does not kill the loop (integration).
 
 ## Phase 5 - Alerting (in-memory evaluation, durable rules + delivery)
@@ -130,11 +130,6 @@ approach appears, a library misbehaves):
 Items raised in discussion that need a decision or a plan edit. When one is resolved, delete it here
 and record the outcome in the Decisions & changes log below.
 
-- [ ] (before 1.3) Rewrite raterecord test + stub to the new 1.3 quote shape. The current files still
-  target the old single-`Rate float64` RateRecord.
-- [ ] (before 1.3) Decide what "unknown pair" means: ISO-shape only, an ISO 4217 list, or a
-  supported-corridors allowlist. Leaning: Money stays shape-only; the semantic check is a
-  supported-corridors allowlist at the RateRecord/ingestion boundary.
 - [ ] (when display formatting is needed) Evaluate golang.org/x/text/currency for ISO 4217 codes and
   per-currency minor-unit exponents (JPY=0, USD=2). New dependency: discuss tradeoff first.
 - [ ] (before 2.1, plan mode + likely ADR) Modulith boundaries: replace the planned kind-grouped
@@ -148,9 +143,74 @@ and record the outcome in the Decisions & changes log below.
 - [ ] (Phase 10) Adapt the V0-built frontend for v1: split `"use client"` components into a server
   shell + client islands so corridor pages render the rate server-side; decide on shadcn/Tailwind
   dependencies. Confirm where the V0 export lives.
+- [ ] (before 4.2 and Phase 9) Local cloud emulation: evaluate LocalStack (and any AWS-native
+  emulator) to run SQS/Lambda/S3/SSM locally and to `terraform apply` against before deploying.
+  Could replace the hand-rolled mock SQS in tests/regression. Check current licensing/free-tier
+  coverage (RDS is not in LocalStack's free tier; keep real Postgres via docker compose).
+
+### Feature flags (decide before 6.1; wire at 7.1)
+- [ ] Every user-facing feature must be switchable off without a redeploy of code: chat, alerts,
+  B2B API, live quoting, operator dashboard. Leaning: plain config flags (env / SSM Parameter Store)
+  read at boot that gate route registration and background goroutines; no third-party flag
+  service. Disabled = route not registered + goroutine not started, not just hidden in the UI.
+- [ ] LLM chat is a learning exercise, not a kept v1 feature: build it behind a flag defaulting to
+  off in production. It has no plan step yet; add one (likely after Phase 7) when we get there.
+
+### Cost & simplification
+Decide together in plan mode after Phase 1, before 2.2 builds the schema. On decision, update
+sadd.md, design.md, repo.md and the affected steps, and write an ADR. Estimated 2026-11-13: current design ~$52-55/mo infra + $25-300 residential proxy + ~$5-30 LLM.
+Candidate lean target ~$27/mo infra, ~$40-80 all-in. Figures are hand-estimated list prices;
+verify in the AWS Pricing Calculator before deciding.
+- [ ] RDS Multi-AZ -> single-AZ with automated backups + PITR until revenue (~$14/mo saved; failover
+  becomes a ~30 min restore, no data loss beyond PITR). Flip back is a Terraform flag.
+- [ ] Edge on Cloudflare free (DNS, CDN, static frontend via Pages, WAF/DDoS in front of the API);
+  AWS keeps compute + data. Max two vendors; stateful pieces stay next to their compute.
+  Replaces CloudFront + WAF + Route 53 (~$10/mo saved).
+- [ ] Scrape cadence 5 min -> ~15 min, and API-first providers bypass the residential proxy.
+  The proxy is the dominant cost (~$230-290/mo at 5 min, 450 quotes/tick; ~$10-40 after both).
+- [ ] Drop the per-tick ingestion -> webhook -> scoped rebuild pipeline (10.6): since hydration
+  (2026-09-18) only crawlers need the static rate, so rebuild on a schedule (every few hours) +
+  on deploy. Simplifies Phase 10.
+- [ ] SQS: one batched message per provider per tick (not one per quote) to stay in the free tier.
+  Fold into 8.3.
+- [ ] historical_rates growth (~0.6-1 GB/mo at the above volumes): decide a retention/rollup policy
+  (e.g. raw 30-90 days, hourly rollups kept) before 2.2.
+- [ ] Compute stays EC2 (or Lightsail; verify pricing). Rejected for now: ECS Fargate (needs an ALB,
+  ~$28-32/mo; revisit at the enterprise profile, where it also replaces nginx blue/green) and
+  Lambda-only (breaks the single-process alert pool/cache/consumer; RDS Proxy ~$22/mo minimum).
+- [ ] Keep Lambda + SQS for scrapers (not in-process goroutines): the scrapers are the code agents
+  rewrite, so Lambda isolates generated code from the API process and its secrets.
+- [ ] Premature for v1, consider deferring: Multi-AZ, 5-min scraping, per-tick rebuilds, RAG over an
+  empty failure corpus (start the healer with the registry + fixtures, add RAG when there is history).
+
+### Security (each tagged with the step that must include it)
+- [ ] (Phase 12 / 12.5) Agents read attacker-controlled text (ToS pages, sniffed XHR). Least-privilege
+  GITHUB_TOKEN in agent workflows, no secrets exposed to agent-PR-triggered workflows (avoid
+  `pull_request_target`), AWS via GitHub OIDC with narrow roles, never long-lived keys.
+- [ ] (10.2 / FAQ mining) Chat text flows into FAQPage JSON-LD inside a <script> tag: escape `<`
+  (and `</script>`) in JSON-LD serialization and moderate before publishing (stored XSS risk).
+- [ ] (6.3 + chat step) Denial-of-wallet: per-IP/per-user limits and max_tokens on chat; AWS Budgets
+  alerts (free) plus hard spend caps on the LLM and proxy accounts.
+- [ ] (9.4 / 9.5) Deploy via SSM Run Command instead of SSH from Actions: no inbound port 22.
+- [ ] (7.1 / Phase 9) Secrets (Stripe, LLM, DB) in SSM Parameter Store SecureString; never .env on
+  the host or in the repo.
+- [ ] (0.4 follow-on) Supply chain: pin deps, add govulncheck + npm audit + Dependabot to CI.
+- [ ] (8.1 / product) Legal/partner risk of TLS-fingerprint forging + residential proxies to bypass
+  bot protection on providers who are also prospective affiliate partners. Prefer official APIs and
+  affiliate rate feeds; justify evasion per provider.
 
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
+
+- 2026-11-13 [1.3, 4.2] Settled the RateRecord quote interface before writing its test. (1) "Unknown
+  pair" split in two: RateRecord.Validate stays pure and checks only that the pair is well-formed
+  (valid codes, Base != Quote); the supported-corridors allowlist is injected config checked at
+  ingestion (4.2), keeping shared/ free of config and global state. (2) Fees may be in either
+  currency of the pair (none seen in the receive currency yet, but cheap flexibility). (3) RateClass
+  and PayMethod are named string types; RateClass is a closed set with Valid(), PayMethod only needs
+  to be non-empty for now. (4) Validate does no cross-field arithmetic (e.g. TotalPaid ==
+  SendAmount + Fees) because fee models differ (added on top vs deducted) and the record holds
+  observed values. OfferedRate stays float64: displayed, never used in money arithmetic. No ADR.
 
 - 2026-11-13 [1.2 follow-up] corridor now validates codes via money.IsValidCurrency and its private
   copy is deleted, so there is one definition of a well-formed currency code. Dependency direction is
