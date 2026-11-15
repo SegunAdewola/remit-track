@@ -1,5 +1,4 @@
-// Package money defines an exact monetary value type: an integer amount in a
-// currency's minor units plus its ISO 4217 currency code.
+// Package money provides a value type for an amount of money in one currency.
 package money
 
 import (
@@ -7,24 +6,23 @@ import (
 	"fmt"
 )
 
-// Money is an amount of a single currency, held as an integer count of the
-// currency's minor units (e.g. cents for USD, so $12.50 is Amount 1250).
-// Integers keep sums of fees and principals exact; float64 rounding would
-// silently corrupt money.
+// Money is an amount in the minor units of a currency, such as cents for CAD
+// or kobo for NGN. For example, CAD 12.50 is Money{Amount: 1250, Currency:
+// "CAD"}.
 //
-// Money does not restrict the sign of Amount. Whether a value may be zero or
-// negative depends on what it represents, so that rule belongs to the caller.
+// Amount is an integer so that arithmetic on money is exact. Money places no
+// constraint on the sign of Amount; callers decide whether zero or negative
+// amounts are allowed.
 type Money struct {
 	Amount   int64
-	Currency string
+	Currency string // ISO 4217 code, such as "CAD"
 }
 
-// ErrInvalidCurrency is returned, wrapped with the offending code, when a
-// currency code is not well-formed. Match it with errors.Is.
+// ErrInvalidCurrency indicates a malformed currency code.
 var ErrInvalidCurrency = errors.New("invalid currency code")
 
-// Validate reports whether m has a well-formed currency code, returning an
-// error wrapping ErrInvalidCurrency if not. It does not check Amount.
+// Validate returns an error wrapping ErrInvalidCurrency if m.Currency is not a
+// well-formed currency code. It does not check Amount.
 func (m Money) Validate() error {
 	if !IsValidCurrency(m.Currency) {
 		return fmt.Errorf("money: %q: %w", m.Currency, ErrInvalidCurrency)
@@ -32,9 +30,8 @@ func (m Money) Validate() error {
 	return nil
 }
 
-// IsValidCurrency reports whether code has the shape of an ISO 4217 currency
-// code: exactly three uppercase ASCII letters. It does not check that the code
-// names a real currency.
+// IsValidCurrency reports whether code is three uppercase ASCII letters, the
+// form of an ISO 4217 code. It does not check that the currency exists.
 func IsValidCurrency(code string) bool {
 	if len(code) != 3 {
 		return false

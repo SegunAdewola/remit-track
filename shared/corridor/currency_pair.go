@@ -1,5 +1,4 @@
-// Package corridor defines value types for remittance corridors, starting with
-// the currency pair that a rate applies to.
+// Package corridor provides types that identify remittance corridors.
 package corridor
 
 import (
@@ -10,21 +9,21 @@ import (
 	"github.com/SegunAdewola/remit-track/shared/money"
 )
 
-// CurrencyPair identifies a remittance corridor by its base and quote ISO 4217
-// currency codes, e.g. USD -> GHS.
+// CurrencyPair identifies a corridor by the currency sent (Base) and the
+// currency received (Quote). Its string form is "BASE:QUOTE", such as
+// "CAD:NGN".
 type CurrencyPair struct {
 	Base  string
 	Quote string
 }
 
-// ErrInvalidPair is returned by Parse when a string is not a well-formed
-// "BASE:QUOTE" currency pair.
+// ErrInvalidPair indicates a string that is not a valid "BASE:QUOTE" pair.
 var ErrInvalidPair = errors.New("invalid currency pair")
 
-// Parse reads a canonical "BASE:QUOTE" currency pair, e.g. "USD:GHS", where
-// each side is a well-formed currency code as defined by
-// [money.IsValidCurrency]. It returns an error wrapping ErrInvalidPair if s is
-// malformed. Whether the codes name real currencies is not checked here.
+// Parse parses s in the form "BASE:QUOTE", such as "CAD:NGN". Each code must
+// satisfy [money.IsValidCurrency]. If s is malformed, Parse returns an error
+// wrapping ErrInvalidPair. Parse does not check that the codes name real
+// currencies.
 func Parse(s string) (CurrencyPair, error) {
 	base, quote, found := strings.Cut(s, ":")
 	if !found || !money.IsValidCurrency(base) || !money.IsValidCurrency(quote) {
@@ -33,7 +32,7 @@ func Parse(s string) (CurrencyPair, error) {
 	return CurrencyPair{Base: base, Quote: quote}, nil
 }
 
-// String returns the canonical "BASE:QUOTE" form of the pair.
+// String returns the pair in the form "BASE:QUOTE".
 func (c CurrencyPair) String() string {
 	return c.Base + ":" + c.Quote
 }

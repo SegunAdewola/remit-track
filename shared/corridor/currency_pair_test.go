@@ -12,14 +12,14 @@ func TestParse(t *testing.T) {
 		want    CurrencyPair
 		wantErr bool
 	}{
-		{name: "valid uppercase pair", input: "USD:GHS", want: CurrencyPair{Base: "USD", Quote: "GHS"}},
+		{name: "valid uppercase pair", input: "CAD:NGN", want: CurrencyPair{Base: "CAD", Quote: "NGN"}},
 		{name: "empty string", input: "", wantErr: true},
-		{name: "missing colon", input: "USD", wantErr: true},
-		{name: "too many parts", input: "USD:GHS:EUR", wantErr: true},
-		{name: "base too short", input: "US:GHS", wantErr: true},
-		{name: "quote too long", input: "USD:GHSX", wantErr: true},
-		{name: "non-letter in code", input: "US1:GHS", wantErr: true},
-		{name: "lowercase rejected", input: "usd:ghs", wantErr: true},
+		{name: "missing colon", input: "CAD", wantErr: true},
+		{name: "too many parts", input: "CAD:NGN:EUR", wantErr: true},
+		{name: "base too short", input: "CA:NGN", wantErr: true},
+		{name: "quote too long", input: "CAD:NGNX", wantErr: true},
+		{name: "non-letter in code", input: "CA1:NGN", wantErr: true},
+		{name: "lowercase rejected", input: "cad:ngn", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -44,14 +44,14 @@ func TestParse(t *testing.T) {
 }
 
 func TestCurrencyPairString(t *testing.T) {
-	c := CurrencyPair{Base: "USD", Quote: "GHS"}
-	if got := c.String(); got != "USD:GHS" {
-		t.Errorf("String() = %q, want %q", got, "USD:GHS")
+	c := CurrencyPair{Base: "CAD", Quote: "NGN"}
+	if got := c.String(); got != "CAD:NGN" {
+		t.Errorf("String() = %q, want %q", got, "CAD:NGN")
 	}
 }
 
 func TestParseStringRoundTrip(t *testing.T) {
-	const s = "USD:GHS"
+	const s = "CAD:NGN"
 	c, err := Parse(s)
 	if err != nil {
 		t.Fatalf("Parse(%q) unexpected error: %v", s, err)
