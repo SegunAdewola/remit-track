@@ -1,167 +1,162 @@
-// Package raterecord defines RateRecord, the canonical quote a provider returns
-// for one transfer, shared by the scrapers that produce it and the backend that
-// stores and ranks it.
+// Package raterecord provides RateRecord, the quote type that scrapers produce
+// and the backend stores and ranks.
 package raterecord
 
 import (
 	"errors"
+	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/SegunAdewola/remit-track/shared/corridor"
 	"github.com/SegunAdewola/remit-track/shared/money"
 )
 
-// RateRecord is one quote observed from a provider: what a sender pays and
-// what the recipient receives for a given corridor, amount, payment methods
-// and rate class at an instant.
+// RateRecord is a quote observed from a provider for one transfer: the amount
+// sent, the total the sender pays, the amount the recipient receives, and the
+// fees, for a given corridor, pair of payment methods, and rate class.
 //
-// Every value is the provider's own output, captured as observed. Nothing here
-// is derived from a fee formula, because a miscomputed price looks exactly like
-// a correct one. For that reason RateRecord holds no cross-field invariants
-// such as TotalPaid == SendAmount + Fees: providers differ in whether fees are
-// added on top or deducted from the converted amount.
+// Fields hold the values the provider reported. RateRecord does not require
+// them to agree with each other. For example, TotalPaid need not equal
+// SendAmount plus Fees, since some providers deduct fees from the amount
+// converted instead of adding them.
 type RateRecord struct {
-	// Provider is the provider's slug, e.g. "wise".
-	Provider string
-	// Pair is the corridor: Base is the send currency, Quote the receive currency.
-	Pair corridor.CurrencyPair
-	// SendAmount is the amount the quote was requested for, in Base.
-	SendAmount money.Money
-	// TotalPaid is what the sender actually pays, fees included, in Base.
-	TotalPaid money.Money
-	// ReceiveAmount is what the recipient gets, in Quote.
-	ReceiveAmount money.Money
-	// Fees is the total fee charged, in either currency of the pair. May be zero.
-	Fees money.Money
-	// OfferedRate is the provider's advertised exchange rate. It is for display
-	// only; rankings use amounts, never this float.
-	OfferedRate float64
-	// PayIn is how the sender funds the transfer, e.g. "bank_transfer".
-	PayIn PayMethod
-	// PayOut is how the recipient is paid, e.g. "mobile_money".
-	PayOut PayMethod
-	// Class distinguishes the standard price from promotional ones.
-	Class RateClass
-	// Timestamp is when the quote was observed.
-	Timestamp time.Time
+	Provider      string                // provider slug, such as "sendapp"
+	Pair          corridor.CurrencyPair // Base is sent, Quote is received
+	SendAmount    money.Money           // amount quoted for, in Base
+	TotalPaid     money.Money           // amount the sender pays, in Base
+	ReceiveAmount money.Money           // amount the recipient receives, in Quote
+	Fees          money.Money           // total fees, in Base or Quote
+	OfferedRate   float64               // advertised exchange rate, for display only
+	PayIn         PayMethod             // how the sender pays
+	PayOut        PayMethod             // how the recipient is paid
+	Class         RateClass             // pricing the quote applies to
+	Timestamp     time.Time             // when the quote was observed
 }
 
-// Errors returned by [RateRecord.Validate], wrapped with the offending field
-// and value. Match them with errors.Is.
+// Errors wrapped by the error that [RateRecord.Validate] returns.
 var (
-	// ErrEmptyProvider means Provider is empty.
-	ErrEmptyProvider = errors.New("empty provider")
-	// ErrMalformedPair means Pair has a malformed currency code or Base == Quote.
-	ErrMalformedPair = errors.New("malformed currency pair")
-	// ErrNonPositiveAmount means SendAmount, TotalPaid or ReceiveAmount is not > 0.
+	ErrEmptyProvider     = errors.New("empty provider")
+	ErrMalformedPair     = errors.New("malformed currency pair")
 	ErrNonPositiveAmount = errors.New("non-positive amount")
-	// ErrNegativeFees means Fees is below zero.
-	ErrNegativeFees = errors.New("negative fees")
-	// ErrCurrencyMismatch means a money field is not in the currency of its side
-	// of the pair.
-	ErrCurrencyMismatch = errors.New("currency mismatch")
-	// ErrInvalidRate means OfferedRate is zero, negative, NaN or infinite.
-	ErrInvalidRate = errors.New("invalid rate")
-	// ErrEmptyPayMethod means PayIn or PayOut is empty.
-	ErrEmptyPayMethod = errors.New("empty pay method")
-	// ErrInvalidClass means Class is not one of the defined RateClass values.
-	ErrInvalidClass = errors.New("invalid class")
-	// ErrZeroTimestamp means Timestamp is the zero time.
-	ErrZeroTimestamp = errors.New("zero timestamp")
+	ErrNegativeFees      = errors.New("negative fees")
+	ErrCurrencyMismatch  = errors.New("currency mismatch")
+	ErrInvalidRate       = errors.New("invalid rate")
+	ErrEmptyPayMethod    = errors.New("empty pay method")
+	ErrInvalidClass      = errors.New("invalid class")
+	ErrZeroTimestamp     = errors.New("zero timestamp")
 )
 
-// Validate reports whether r is a well-formed quote. It returns nil if so, or
-// an error wrapping one or more of the Err* values above.
+// Validate checks that r is well formed. If it is not, Validate returns an
+// error that wraps every problem found, each matching one of the Err values in
+// this package under errors.Is. A malformed Pair is reported on its own, since
+// the currency checks depend on it.
 //
-// Validate checks shape only. It does not check that r.Pair is a corridor
-// RemitTrack supports; that allowlist is configuration and is enforced at
-// ingestion.
+// Validate does not check whether r.Pair is a supported corridor.
 func (r RateRecord) Validate() error {
-	if r.Provider == "" {
-		return ErrEmptyProvider
+	if err := checkPair(r.Pair); err != nil {
+		return fmt.Errorf("raterecord: quote from %q: %w", r.Provider, err)
 	}
-	if r.Pair == (corridor.CurrencyPair{}) {
-		return ErrMalformedPair
-	}
-	if !money.IsValidCurrency(r.Pair.Base) {
-		return ErrMalformedPair
-	}
-	if !money.IsValidCurrency(r.Pair.Quote) {
-		return ErrMalformedPair
-	}
-	if r.Pair.Base == r.Pair.Quote {
-		return ErrMalformedPair
-	}
-	if r.SendAmount.Amount <= 0 {
-		return ErrNonPositiveAmount
-	}
-	if r.TotalPaid.Amount <= 0 {
-		return ErrNonPositiveAmount
-	}
-	if r.ReceiveAmount.Amount <= 0 {
-		return ErrNonPositiveAmount
-	}
-	if r.Fees.Amount < 0 {
-		return ErrNegativeFees
-	}
-	if r.SendAmount.Currency != r.Pair.Base {
-		return ErrCurrencyMismatch
-	}
-	if r.TotalPaid.Currency != r.Pair.Base {
-		return ErrCurrencyMismatch
-	}
-	if r.ReceiveAmount.Currency != r.Pair.Quote {
-		return ErrCurrencyMismatch
-	}
-	if r.Fees.Currency != r.Pair.Base && r.Fees.Currency != r.Pair.Quote {
-		return ErrCurrencyMismatch
-	}
-	if r.OfferedRate <= 0 {
-		return ErrInvalidRate
-	}
-	if math.IsNaN(r.OfferedRate) {
-		return ErrInvalidRate
-	}
-	if math.IsInf(r.OfferedRate, 0) {
-		return ErrInvalidRate
-	}
-	if r.PayIn == "" {
-		return ErrEmptyPayMethod
-	}
-	if r.PayOut == "" {
-		return ErrEmptyPayMethod
-	}
-	if !r.Class.Valid() {
-		return ErrInvalidClass
-	}
-	if r.Timestamp.IsZero() {
-		return ErrZeroTimestamp
+	base, quote := r.Pair.Base, r.Pair.Quote
+	err := errors.Join(
+		checkNonEmpty("provider", r.Provider, ErrEmptyProvider),
+		checkPositive("send amount", r.SendAmount),
+		checkPositive("total paid", r.TotalPaid),
+		checkPositive("receive amount", r.ReceiveAmount),
+		checkNonNegative("fees", r.Fees),
+		checkCurrency("send amount", r.SendAmount, base),
+		checkCurrency("total paid", r.TotalPaid, base),
+		checkCurrency("receive amount", r.ReceiveAmount, quote),
+		checkCurrency("fees", r.Fees, base, quote),
+		checkRate(r.OfferedRate),
+		checkNonEmpty("pay-in method", string(r.PayIn), ErrEmptyPayMethod),
+		checkNonEmpty("pay-out method", string(r.PayOut), ErrEmptyPayMethod),
+		checkClass(r.Class),
+		checkTimestamp(r.Timestamp),
+	)
+	if err != nil {
+		return fmt.Errorf("raterecord: quote from %q: %w", r.Provider, err)
 	}
 	return nil
 }
 
-// PayMethod names how money enters or leaves a transfer, e.g. "bank_transfer"
-// or "mobile_money". The set is open: any non-empty value is accepted until
-// provider parsers settle a shared vocabulary.
+// checkPair reports a pair whose codes are malformed or identical.
+func checkPair(p corridor.CurrencyPair) error {
+	if !money.IsValidCurrency(p.Base) || !money.IsValidCurrency(p.Quote) || p.Base == p.Quote {
+		return fmt.Errorf("pair %q: %w", p, ErrMalformedPair)
+	}
+	return nil
+}
+
+// checkNonEmpty returns sentinel, wrapped with name, if s is empty.
+func checkNonEmpty(name, s string, sentinel error) error {
+	if s == "" {
+		return fmt.Errorf("%s: %w", name, sentinel)
+	}
+	return nil
+}
+
+func checkPositive(name string, m money.Money) error {
+	if m.Amount <= 0 {
+		return fmt.Errorf("%s %d %s: %w", name, m.Amount, m.Currency, ErrNonPositiveAmount)
+	}
+	return nil
+}
+
+func checkNonNegative(name string, m money.Money) error {
+	if m.Amount < 0 {
+		return fmt.Errorf("%s %d %s: %w", name, m.Amount, m.Currency, ErrNegativeFees)
+	}
+	return nil
+}
+
+// checkCurrency reports m if its currency is not one of allowed.
+func checkCurrency(name string, m money.Money, allowed ...string) error {
+	if !slices.Contains(allowed, m.Currency) {
+		return fmt.Errorf("%s in %q, want one of %q: %w", name, m.Currency, allowed, ErrCurrencyMismatch)
+	}
+	return nil
+}
+
+// checkRate reports a rate that is not a finite positive number. The NaN test
+// is needed because every comparison with NaN, including rate <= 0, is false.
+func checkRate(rate float64) error {
+	if math.IsNaN(rate) || math.IsInf(rate, 0) || rate <= 0 {
+		return fmt.Errorf("offered rate %v: %w", rate, ErrInvalidRate)
+	}
+	return nil
+}
+
+func checkClass(c RateClass) error {
+	if !c.Valid() {
+		return fmt.Errorf("class %q: %w", c, ErrInvalidClass)
+	}
+	return nil
+}
+
+func checkTimestamp(t time.Time) error {
+	if t.IsZero() {
+		return fmt.Errorf("timestamp: %w", ErrZeroTimestamp)
+	}
+	return nil
+}
+
+// PayMethod identifies how money is paid in or out, such as "bank_transfer" or
+// "mobile_money". Any non-empty value is valid.
 type PayMethod string
 
-// RateClass distinguishes a provider's standard price from promotional ones.
-// Its values are stored and sent over the wire, so they must never change.
+// RateClass identifies the pricing a quote applies to. The values are stored
+// and sent between services, so existing values must not be changed.
 type RateClass string
 
-// The defined rate classes. Only ClassStandard is ranked; promotional classes
-// are shown as a badge so returning users are never shown a price they cannot
-// get.
+// Rate classes. Only ClassStandard quotes are ranked.
 const (
-	// ClassStandard is the price any customer gets.
-	ClassStandard RateClass = "standard"
-	// ClassPromoFirstTransfer is a discounted price for a customer's first
-	// transfer only.
-	ClassPromoFirstTransfer RateClass = "promo_first_transfer"
+	ClassStandard           RateClass = "standard"             // available to every customer
+	ClassPromoFirstTransfer RateClass = "promo_first_transfer" // first transfer only
 )
 
-// Valid reports whether c is one of the defined rate classes.
+// Valid reports whether c is a defined rate class.
 func (c RateClass) Valid() bool {
 	switch c {
 	case ClassStandard, ClassPromoFirstTransfer:
