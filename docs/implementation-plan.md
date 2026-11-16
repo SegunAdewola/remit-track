@@ -37,8 +37,9 @@ approach appears, a library misbehaves):
 - [x] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
 - [x] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
 - [x] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate float64, PayIn/PayOut as PayMethod, Class as RateClass, Timestamp) + Validate, plus RateClass.Valid over the closed set {standard, promo_first_transfer}. Validate is pure: it checks each field's own rule and currency/side matching only (Send/TotalPaid in Base, Receive in Quote, Fees in either side of the pair), never cross-field arithmetic, and checks the pair is well-formed (valid codes, Base != Quote) but NOT that it is a supported corridor (that allowlist check lives at ingestion, 4.2). Test: valid and each invalid case - empty provider, malformed pair, non-positive amounts, negative fees, currency/side mismatch, non-finite or non-positive rate, empty method, bad class, zero timestamp (table-driven unit).
-- [ ] 1.4 feat(shared): RateRecord.EffectiveRate() = ReceiveAmount / TotalPaid, the ranking key. Test: known ratio + guards (unit).
-- [ ] 1.5 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
+- [ ] 1.4 feat(shared): money.MinorUnits(code) (int, bool), an owned ISO 4217 minor-unit table for the currencies RemitTrack serves (CAD, USD, GBP, EUR, NGN, GHS, KES = 2; XOF, XAF = 0). The single source of truth for both parsers (8.2) and EffectiveRate; adding a corridor adds a row. Test: each listed currency pinned to its value; unknown and malformed codes return false (table-driven unit).
+- [ ] 1.5 feat(shared): RateRecord.EffectiveRate() (float64, error) = ReceiveAmount / TotalPaid in major units, scaled by 10^(base minor units - quote minor units). Calls Validate first; errors on an unknown currency. Test: known CAD->NGN ratio, CAD->XOF proves the minor-unit scaling, invalid record and unknown currency return errors; float comparisons use a tolerance (unit).
+- [ ] 1.6 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
 
 ## Phase 2 - Persistence (the source of truth)
 - [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
@@ -130,8 +131,6 @@ approach appears, a library misbehaves):
 Items raised in discussion that need a decision or a plan edit. When one is resolved, delete it here
 and record the outcome in the Decisions & changes log below.
 
-- [ ] (when display formatting is needed) Evaluate golang.org/x/text/currency for ISO 4217 codes and
-  per-currency minor-unit exponents (JPY=0, USD=2). New dependency: discuss tradeoff first.
 - [ ] (before 2.1, plan mode + likely ADR) Modulith boundaries: replace the planned kind-grouped
   `internal/models` + shared `internal/database` with domain-owned modules (e.g. rates, alerting,
   users/billing), each owning its types and tables (Parnas: hide each module's secret). Update
@@ -147,6 +146,24 @@ and record the outcome in the Decisions & changes log below.
   emulator) to run SQS/Lambda/S3/SSM locally and to `terraform apply` against before deploying.
   Could replace the hand-rolled mock SQS in tests/regression. Check current licensing/free-tier
   coverage (RDS is not in LocalStack's free tier; keep real Postgres via docker compose).
+
+### API contract and HTTP stack (decide in plan mode before Phase 6)
+- [ ] Add a step before 6.1: write the public API contract as OpenAPI (contract-first, decided
+  2026-11-14) in a versioned file, e.g. `backend/api/openapi.yaml`. Handlers in Phase 6 implement it;
+  the frontend (10.3) and B2B docs read it.
+- [ ] Decide whether to generate Go types/server stubs from the spec (oapi-codegen, std-http target)
+  or hand-write handlers and add a conformance test against the spec. Either way a new dependency
+  or tool: discuss tradeoff first.
+- [ ] HTTP stack: leaning stdlib `net/http` with Go 1.22+ method/path patterns
+  (`"GET /api/v1/rates/{corridor}"`, `r.PathValue`) and `func(http.Handler) http.Handler`
+  middleware; no framework. chi is the fallback if routing outgrows ServeMux. Avoid Gin/Echo
+  (framework-specific handler types) and Fiber (fasthttp, not net/http).
+- [ ] Keep the public API shape separate from RateRecord's internal SQS JSON (1.6): the API is a
+  contract with customers, the SQS message is an internal detail that may change.
+- [ ] Decide the API's error response shape (e.g. RFC 9457 problem+json) and versioning policy
+  (`/api/v1`, what counts as breaking) as part of the contract.
+- [ ] Postman/Newman is optional: import the OpenAPI spec for manual exploration and smoke tests
+  against a deployed server (from 7.1/9.6). Correctness stays in Go httptest in CI.
 
 ### Feature flags (decide before 6.1; wire at 7.1)
 - [ ] Every user-facing feature must be switchable off without a redeploy of code: chat, alerts,
@@ -202,6 +219,19 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-14 [Phase 6] The public API will be designed contract-first in OpenAPI, before handlers,
+  because the frontend and B2B customers depend on it and field names become hard to change once
+  consumed. A step before 6.1 will be added in plan mode; codegen vs hand-written handlers and the
+  HTTP stack (leaning stdlib net/http) are open follow-ups. No ADR yet.
+- 2026-11-14 [1.4-1.6] Inserted step 1.4 (money.MinorUnits) before EffectiveRate; EffectiveRate is now
+  1.5 and JSON 1.6. Dividing raw minor units gives a wrong rate whenever the two currencies have
+  different minor units (CAD->XOF reads 4.3 instead of 430). Chose an owned ISO 4217 table over
+  golang.org/x/text/currency: stored amounts are interpreted through this table, so it must change
+  only by our own reviewed commit, never by an upstream data update (x/text uses CLDR display data,
+  which differs from ISO 4217 for some currencies). This matches how payment processors such as
+  Stripe and Adyen keep their own minor-unit lists. EffectiveRate returns (float64, error) and
+  validates first, avoiding in-band errors (Inf/NaN) per Google Go style. Closes the x/text follow-up.
+  No ADR.
 - 2026-11-13 [1.3, 4.2] Settled the RateRecord quote interface before writing its test. (1) "Unknown
   pair" split in two: RateRecord.Validate stays pure and checks only that the pair is well-formed
   (valid codes, Base != Quote); the supported-corridors allowlist is injected config checked at
