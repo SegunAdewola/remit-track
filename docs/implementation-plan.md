@@ -37,7 +37,7 @@ approach appears, a library misbehaves):
 - [x] 1.1 feat(shared): corridor CurrencyPair type with Parse/String ("USD:GHS"). Test: parse valid/invalid, round-trip.
 - [x] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
 - [x] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate float64, PayIn/PayOut as PayMethod, Class as RateClass, Timestamp) + Validate, plus RateClass.Valid over the closed set {standard, promo_first_transfer}. Validate is pure: it checks each field's own rule and currency/side matching only (Send/TotalPaid in Base, Receive in Quote, Fees in either side of the pair), never cross-field arithmetic, and checks the pair is well-formed (valid codes, Base != Quote) but NOT that it is a supported corridor (that allowlist check lives at ingestion, 4.2). Test: valid and each invalid case - empty provider, malformed pair, non-positive amounts, negative fees, currency/side mismatch, non-finite or non-positive rate, empty method, bad class, zero timestamp (table-driven unit).
-- [ ] 1.4 feat(shared): money.MinorUnits(code) (int, bool), an owned ISO 4217 minor-unit table for the currencies RemitTrack serves (CAD, USD, GBP, EUR, NGN, GHS, KES = 2; XOF, XAF = 0). The single source of truth for both parsers (8.2) and EffectiveRate; adding a corridor adds a row. Test: each listed currency pinned to its value; unknown and malformed codes return false (table-driven unit).
+- [x] 1.4 feat(shared): money.MinorUnits(code) (int, bool), an owned ISO 4217 minor-unit table for the currencies RemitTrack serves (CAD, USD, GBP, EUR, NGN, GHS, KES = 2; XOF, XAF = 0). The single source of truth for both parsers (8.2) and EffectiveRate; adding a corridor adds a row. Test: each listed currency pinned to its value; unknown and malformed codes return false (table-driven unit).
 - [ ] 1.5 feat(shared): RateRecord.EffectiveRate() (float64, error) = ReceiveAmount / TotalPaid in major units, scaled by 10^(base minor units - quote minor units). Calls Validate first; errors on an unknown currency. Test: known CAD->NGN ratio, CAD->XOF proves the minor-unit scaling, invalid record and unknown currency return errors; float comparisons use a tolerance (unit).
 - [ ] 1.6 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
 
@@ -190,6 +190,18 @@ verify in the AWS Pricing Calculator before deciding.
   on deploy. Simplifies Phase 10.
 - [ ] SQS: one batched message per provider per tick (not one per quote) to stay in the free tier.
   Fold into 8.3.
+- [ ] (before 2.2) Minor-unit changes: decide whether rate tables store each amount's scale (a
+  `minor_units` smallint column written at insert) so rows are self-describing and a future change
+  to money.MinorUnits affects only new rows. Without it, a same-code exponent change needs a data
+  migration that rescales stored amounts in the same release. Redenominations usually get a new code
+  (GHC->GHS, ZWL->ZWG), which is just a new table row. Either way, 8.2 parsers must reject amounts
+  with more decimals than the table allows (never round), so a provider-side change fails loudly.
+- [ ] (Phase 11, with 11.1) Scheduled ISO 4217 check: a weekly GitHub Actions job fetches the official
+  list published by SIX Group (ISO's maintenance agency), compares minor units and withdrawals for
+  supported codes against money.MinorUnits, and opens an issue (never an auto-PR) on any difference.
+  Runbook on an issue: new code -> add a row, accept both codes through the overlap, then retire the
+  old one; same code with new minor units -> one PR before the effective date with table + test +
+  parser fixtures + rescaling migration (unless rows store their own scale), then verify rankings.
 - [ ] historical_rates growth (~0.6-1 GB/mo at the above volumes): decide a retention/rollup policy
   (e.g. raw 30-90 days, hourly rollups kept) before 2.2.
 - [ ] Compute stays EC2 (or Lightsail; verify pricing). Rejected for now: ECS Fargate (needs an ALB,
