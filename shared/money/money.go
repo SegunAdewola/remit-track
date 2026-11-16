@@ -8,7 +8,7 @@ import (
 
 // Money is an amount in the minor units of a currency, such as cents for CAD
 // or kobo for NGN. For example, CAD 12.50 is Money{Amount: 1250, Currency:
-// "CAD"}.
+// "CAD"}. [MinorUnits] gives the number of decimal places for a currency.
 //
 // Amount is an integer so that arithmetic on money is exact. Money places no
 // constraint on the sign of Amount; callers decide whether zero or negative
