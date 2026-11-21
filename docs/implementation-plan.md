@@ -39,8 +39,9 @@ approach appears, a library misbehaves):
 - [x] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate float64, PayIn/PayOut as PayMethod, Class as RateClass, Timestamp) + Validate, plus RateClass.Valid over the closed set {standard, promo_first_transfer}. Validate is pure: it checks each field's own rule and currency/side matching only (Send/TotalPaid in Base, Receive in Quote, Fees in either side of the pair), never cross-field arithmetic, and checks the pair is well-formed (valid codes, Base != Quote) but NOT that it is a supported corridor (that allowlist check lives at ingestion, 4.2). Test: valid and each invalid case - empty provider, malformed pair, non-positive amounts, negative fees, currency/side mismatch, non-finite or non-positive rate, empty method, bad class, zero timestamp (table-driven unit).
 - [x] 1.4 feat(shared): money.MinorUnits(code) (int, bool), an owned ISO 4217 minor-unit table for the currencies RemitTrack serves (CAD, USD, GBP, EUR, NGN, GHS, KES = 2; XOF, XAF = 0). The single source of truth for both parsers (8.2) and EffectiveRate; adding a corridor adds a row. Test: each listed currency pinned to its value; unknown and malformed codes return false (table-driven unit).
 - [x] 1.5 refactor(shared): store Money as fixed-scale micros (ADR 0001). Field `Amount` becomes `Micros int64` (millionths of a whole unit for every currency), plus const `MicrosPerUnit = 1_000_000`. MinorUnits now drives validation and display only. RateRecord code and tests converted to micros with the same cases and expected errors. Test: money tests in micros + MicrosPerUnit pinned; all shared tests green.
-- [ ] 1.6 feat(shared): RateRecord.EffectiveRate() (float64, error) = float64(ReceiveAmount.Micros) / float64(TotalPaid.Micros). No per-pair scaling (micros are the same scale for every currency). Calls Validate first. Test: known CAD->NGN ratio, CAD->XOF regression (430, not 4.3), invalid record returns an error; float comparisons use a tolerance (unit).
-- [ ] 1.7 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
+- [ ] 1.6 feat(shared): RateRecord.Validate rejects amounts more precise than their currency allows (Micros not a multiple of 10^(6 - MinorUnits)) with ErrExcessPrecision, and amounts in a currency missing from money.MinorUnits with ErrUnsupportedCurrency. Test: sub-cent CAD amount, fractional XOF amount and sub-cent fees rejected; whole-unit XOF accepted; currency outside the table rejected (table-driven unit).
+- [ ] 1.7 feat(shared): RateRecord.EffectiveRate() (float64, error) = float64(ReceiveAmount.Micros) / float64(TotalPaid.Micros). No per-pair scaling (micros are the same scale for every currency). Calls Validate first. Test: known CAD->NGN ratio, CAD->XOF regression (430, not 4.3), invalid record returns an error; float comparisons use a tolerance (unit).
+- [ ] 1.8 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
 
 ## Phase 2 - Persistence (the source of truth)
 - [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
@@ -55,7 +56,7 @@ approach appears, a library misbehaves):
 ## Phase 4 - Ingestion (SQS consumer, in-process)
 - [ ] 4.1 feat(ingestion): batch builder accumulates messages into multi-row batches by size and time. Test: batching rules (unit).
 - [ ] 4.2 feat(ingestion): consumer long-polls a queue, decodes RateRecord, validates it, rejects corridors not in the injected supported-corridors allowlist, writes via database. Test: mock SQS -> rows in Postgres; unsupported corridor rejected (integration).
-- [ ] 4.3 feat(ingestion): recover() boundary + poison-message handling (log/DLQ, loop survives). Test: bad message does not kill the loop (integration).
+- [ ] 4.3 feat(ingestion): recover() boundary + poison-message handling (log/DLQ, loop survives). Records failing Validate go to the DLQ, not discarded, so they can be redriven after a parser fix (SQS retention max 14 days). Test: bad message does not kill the loop and lands in the DLQ (integration).
 
 ## Phase 5 - Alerting (in-memory evaluation, durable rules + delivery)
 - [ ] 5.1 feat(alerting): corridor index map build/refresh from AlertConfig; DB is source of truth, index rebuilt on boot. Test: build, lookup, and rebuild-from-DB (unit).
@@ -103,7 +104,7 @@ approach appears, a library misbehaves):
 - [ ] 10.8 feat(frontend): live rate hydration on corridor pages - small client fetch of the cached rates API that freshens the baked-in baseline, degrading gracefully to the baked value when JS is off. Interactive surfaces (alerts/dashboard/chat) are client-rendered against the same API, no static rebuild. Test: hydration updates the number; no-JS shows baked rate (unit + render).
 
 ## Phase 11 - Agent guardrails, corpus, and gates (build before any code generation)
-- [ ] 11.1 feat(observability): structured scraper error/empty-payload emission + CloudWatch metric filter + repository_dispatch webhook. Test: an error log produces a dispatch payload (unit + integration).
+- [ ] 11.1 feat(observability): structured scraper error/empty-payload emission + per-provider validation-rejection rate + CloudWatch metric filter + repository_dispatch webhook. Test: an error log produces a dispatch payload (unit + integration).
 - [ ] 11.2 chore(tests): regression/docker-compose.yml mock proxy network that serves historical payloads. Test: compose up/down.
 - [ ] 11.3 test(tests): failure_registry.json schema + first case. Test: schema validates.
 - [ ] 11.4 feat(services): agent_healer/linter.go AST allowlist gate. Test: allowed passes; forbidden import and //go:linkname rejected (table-driven unit).
@@ -191,11 +192,11 @@ verify in the AWS Pricing Calculator before deciding.
   on deploy. Simplifies Phase 10.
 - [ ] SQS: one batched message per provider per tick (not one per quote) to stay in the free tier.
   Fold into 8.3.
-- [ ] (8.2) Parsers must reject amounts with more decimals than money.MinorUnits allows (never
-  round), so a provider-side precision change fails loudly instead of being stored.
-- [ ] (before 1.6) Decide whether RateRecord.Validate should also reject amounts with more precision
-  than their currency allows (Micros not a multiple of 10^(6 - MinorUnits)), or leave that to
-  parsers only. Doing it in Validate needs every currency to be in the table.
+- [ ] (8.2) Parsers reject amounts with more decimals than money.MinorUnits allows by default (never
+  round silently). A provider with a known quirk (e.g. float noise in amounts) may get an explicit,
+  provider-specific normalization rule (e.g. round half-even to the currency's minor units),
+  recorded in provider_map.json and proven by a fixture test. Cleanup happens per provider at the
+  parser boundary; RateRecord.Validate stays strict.
 - [ ] (Phase 11, with 11.1) Scheduled ISO 4217 check: a weekly GitHub Actions job fetches the official
   list published by SIX Group (ISO's maintenance agency), compares minor units and withdrawals for
   supported codes against money.MinorUnits, and opens an issue (never an auto-PR) on any difference.
@@ -232,6 +233,13 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-20 [1.6-1.8, 4.3, 8.2, 11.1] RateRecord.Validate now also rejects amounts more precise
+  than their currency allows and currencies outside money.MinorUnits (new step 1.6; EffectiveRate is
+  1.7, JSON 1.8). Concern raised: providers with sloppy formatting would be auto-rejected. Resolved
+  by keeping the core strict and handling quirks at the edge: rejected records go to the DLQ and can
+  be redriven after a fix (4.3); per-provider normalization rules live in the parser, opt-in and
+  fixture-tested (8.2); rejection rate per provider is alerted on (11.1). Note the check catches
+  float noise and some parse bugs, not a 100x unit error. No ADR.
 - 2026-11-16 [1.5-1.7, 2.2, ADR 0001] Money is stored as fixed-scale micros (int64 millionths of a
   whole unit, every currency) instead of per-currency minor units. Stored amounts no longer depend on
   money.MinorUnits, so a future minor-unit change cannot misread them, and EffectiveRate needs no
