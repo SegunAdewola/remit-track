@@ -8,7 +8,7 @@ remit-track/
 │   ├── go.mod
 │   ├── raterecord/                      # Canonical RateRecord quote (amounts, fees, methods, class); EffectiveRate ranking key
 │   ├── corridor/                        # Currency-pair and corridor value types
-│   ├── money/                           # Money value type (integer minor units + ISO currency)
+│   ├── money/                           # Money value type (int64 micros + ISO currency)
 │   └── scrapeharness/                   # uTLS transport, proxy rotation, retry/backoff
 ├── backend/                             # Go modulith core (own go.mod)
 │   ├── go.mod

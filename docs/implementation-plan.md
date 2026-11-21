@@ -38,12 +38,13 @@ approach appears, a library misbehaves):
 - [x] 1.2 feat(shared): money.Money value type (integer minor units + ISO currency) with Validate (currency is 3 uppercase letters; sign is the caller's concern). Test: valid/invalid currency (table-driven unit). (Display formatting deferred: needs per-currency exponent metadata - JPY=0 vs USD=2.)
 - [x] 1.3 feat(shared): RateRecord quote struct (Provider, Pair, SendAmount/TotalPaid/ReceiveAmount/Fees as Money, OfferedRate float64, PayIn/PayOut as PayMethod, Class as RateClass, Timestamp) + Validate, plus RateClass.Valid over the closed set {standard, promo_first_transfer}. Validate is pure: it checks each field's own rule and currency/side matching only (Send/TotalPaid in Base, Receive in Quote, Fees in either side of the pair), never cross-field arithmetic, and checks the pair is well-formed (valid codes, Base != Quote) but NOT that it is a supported corridor (that allowlist check lives at ingestion, 4.2). Test: valid and each invalid case - empty provider, malformed pair, non-positive amounts, negative fees, currency/side mismatch, non-finite or non-positive rate, empty method, bad class, zero timestamp (table-driven unit).
 - [x] 1.4 feat(shared): money.MinorUnits(code) (int, bool), an owned ISO 4217 minor-unit table for the currencies RemitTrack serves (CAD, USD, GBP, EUR, NGN, GHS, KES = 2; XOF, XAF = 0). The single source of truth for both parsers (8.2) and EffectiveRate; adding a corridor adds a row. Test: each listed currency pinned to its value; unknown and malformed codes return false (table-driven unit).
-- [ ] 1.5 feat(shared): RateRecord.EffectiveRate() (float64, error) = ReceiveAmount / TotalPaid in major units, scaled by 10^(base minor units - quote minor units). Calls Validate first; errors on an unknown currency. Test: known CAD->NGN ratio, CAD->XOF proves the minor-unit scaling, invalid record and unknown currency return errors; float comparisons use a tolerance (unit).
-- [ ] 1.6 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
+- [ ] 1.5 refactor(shared): store Money as fixed-scale micros (ADR 0001). Field `Amount` becomes `Micros int64` (millionths of a whole unit for every currency), plus const `MicrosPerUnit = 1_000_000`. MinorUnits now drives validation and display only. RateRecord code and tests converted to micros with the same cases and expected errors. Test: money tests in micros + MicrosPerUnit pinned; all shared tests green.
+- [ ] 1.6 feat(shared): RateRecord.EffectiveRate() (float64, error) = float64(ReceiveAmount.Micros) / float64(TotalPaid.Micros). No per-pair scaling (micros are the same scale for every currency). Calls Validate first. Test: known CAD->NGN ratio, CAD->XOF regression (430, not 4.3), invalid record returns an error; float comparisons use a tolerance (unit).
+- [ ] 1.7 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
 
 ## Phase 2 - Persistence (the source of truth)
 - [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
-- [ ] 2.2 feat(database): migration 0001 historical_rates + current_rates with full quote columns (send_amount, total_paid, receive_amount, fees, offered_rate, pay_in, pay_out, rate_class; money as integer minor units) + UNIQUE(provider, currency_pair, send_amount, pay_in, pay_out, rate_class, scrape_timestamp). Test: up/down applies (integration, real Postgres).
+- [ ] 2.2 feat(database): migration 0001 historical_rates + current_rates with full quote columns (send_amount, total_paid, receive_amount, fees, offered_rate, pay_in, pay_out, rate_class; money as bigint micros, e.g. send_amount_micros, per ADR 0001) + UNIQUE(provider, currency_pair, send_amount, pay_in, pay_out, rate_class, scrape_timestamp). Test: up/down applies (integration, real Postgres).
 - [ ] 2.3 feat(database): connection pool + config from env. Test: connect and ping (integration).
 - [ ] 2.4 feat(database): idempotent UPSERT into historical_rates (ON CONFLICT on the full quote key DO NOTHING). Test: duplicate ignored, distinct timestamps/amounts kept (integration).
 - [ ] 2.5 feat(database): current_rates upsert on insert + read-latest-by-quote-key query ranked by effective rate. Test: one row per quote key, historical not scanned (integration).
@@ -190,18 +191,18 @@ verify in the AWS Pricing Calculator before deciding.
   on deploy. Simplifies Phase 10.
 - [ ] SQS: one batched message per provider per tick (not one per quote) to stay in the free tier.
   Fold into 8.3.
-- [ ] (before 2.2) Minor-unit changes: decide whether rate tables store each amount's scale (a
-  `minor_units` smallint column written at insert) so rows are self-describing and a future change
-  to money.MinorUnits affects only new rows. Without it, a same-code exponent change needs a data
-  migration that rescales stored amounts in the same release. Redenominations usually get a new code
-  (GHC->GHS, ZWL->ZWG), which is just a new table row. Either way, 8.2 parsers must reject amounts
-  with more decimals than the table allows (never round), so a provider-side change fails loudly.
+- [ ] (8.2) Parsers must reject amounts with more decimals than money.MinorUnits allows (never
+  round), so a provider-side precision change fails loudly instead of being stored.
+- [ ] (before 1.6) Decide whether RateRecord.Validate should also reject amounts with more precision
+  than their currency allows (Micros not a multiple of 10^(6 - MinorUnits)), or leave that to
+  parsers only. Doing it in Validate needs every currency to be in the table.
 - [ ] (Phase 11, with 11.1) Scheduled ISO 4217 check: a weekly GitHub Actions job fetches the official
   list published by SIX Group (ISO's maintenance agency), compares minor units and withdrawals for
   supported codes against money.MinorUnits, and opens an issue (never an auto-PR) on any difference.
-  Runbook on an issue: new code -> add a row, accept both codes through the overlap, then retire the
-  old one; same code with new minor units -> one PR before the effective date with table + test +
-  parser fixtures + rescaling migration (unless rows store their own scale), then verify rankings.
+  Runbook on an issue: new code (redenominations usually get one, e.g. GHC->GHS, ZWL->ZWG) -> add a
+  row, accept both codes through the overlap, then retire the old one; same code with new minor
+  units -> update the table, test and parser fixtures before the effective date. Stored amounts are
+  micros (ADR 0001), so no rescaling migration is needed.
 - [ ] historical_rates growth (~0.6-1 GB/mo at the above volumes): decide a retention/rollup policy
   (e.g. raw 30-90 days, hourly rollups kept) before 2.2.
 - [ ] Compute stays EC2 (or Lightsail; verify pricing). Rejected for now: ECS Fargate (needs an ALB,
@@ -231,6 +232,12 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-16 [1.5-1.7, 2.2, ADR 0001] Money is stored as fixed-scale micros (int64 millionths of a
+  whole unit, every currency) instead of per-currency minor units. Stored amounts no longer depend on
+  money.MinorUnits, so a future minor-unit change cannot misread them, and EffectiveRate needs no
+  per-pair scaling. MinorUnits stays for validation and display. Inserted 1.5 (the refactor);
+  EffectiveRate is now 1.6 and JSON 1.7; 2.2 columns are bigint micros. Dropped the "store each
+  row's scale" follow-up. See docs/decisions/0001-money-as-fixed-scale-micros.md.
 - 2026-11-14 [Phase 6] The public API will be designed contract-first in OpenAPI, before handlers,
   because the frontend and B2B customers depend on it and field names become hard to change once
   consumed. A step before 6.1 will be added in plan mode; codegen vs hand-written handlers and the
