@@ -42,6 +42,7 @@ approach appears, a library misbehaves):
 - [x] 1.6 feat(shared): RateRecord.Validate rejects amounts more precise than their currency allows (Micros not a multiple of 10^(6 - MinorUnits)) with ErrExcessPrecision, and amounts in a currency missing from money.MinorUnits with ErrUnknownCurrency (a data check: the precision cannot be verified; not the supported-corridor business check, which stays at 4.2). Test: sub-cent CAD amount, fractional XOF amount and sub-cent fees rejected; whole-unit XOF accepted; currency outside the table rejected (table-driven unit).
 - [ ] 1.7 feat(shared): RateRecord.EffectiveRate() (float64, error) = float64(ReceiveAmount.Micros) / float64(TotalPaid.Micros). No per-pair scaling (micros are the same scale for every currency). Calls Validate first. Test: known CAD->NGN ratio, CAD->XOF regression (430, not 4.3), invalid record returns an error; float comparisons use a tolerance (unit).
 - [ ] 1.8 feat(shared): RateRecord JSON marshal/unmarshal with stable field names. Test: round-trip + field-name assertions.
+- [ ] 1.9 test(shared): property tests via native Go fuzzing (testing.F, no dependency). Properties: corridor.Parse/String round-trip; precision accepts k*step and rejects k*step+r for every table currency; EffectiveRate is finite, > 0 and never panics for valid records, and rises when ReceiveAmount rises; RateRecord JSON round-trips. Seed corpora run in every `go test`; time-boxed fuzzing (`-fuzztime=30s` per target) runs locally and as a CI job. Test: `go test ./...` green; each fuzz target runs 30s without failure.
 
 ## Phase 2 - Persistence (the source of truth)
 - [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
@@ -149,6 +150,14 @@ and record the outcome in the Decisions & changes log below.
   Could replace the hand-rolled mock SQS in tests/regression. Check current licensing/free-tier
   coverage (RDS is not in LocalStack's free tier; keep real Postgres via docker compose).
 
+### Testing tools
+- [ ] (revisit after 1.9) Hegel (Antithesis, built on Hypothesis) for property-based testing:
+  Hypothesis-quality structured generators and shrinking, beyond native Go fuzzing. Not adopted yet
+  (2026-11-21) because its language libraries call a Python `hegel-core` server (a second runtime
+  for a Go-only module, locally and in CI), the maintainers call that component temporary, and
+  hegel-go is newly released. Revisit when hegel-go is stable and no longer needs Python; the 1.9
+  properties should port with only generator changes.
+
 ### API contract and HTTP stack (decide in plan mode before Phase 6)
 - [ ] Add a step before 6.1: write the public API contract as OpenAPI (contract-first, decided
   2026-11-14) in a versioned file, e.g. `backend/api/openapi.yaml`. Handlers in Phase 6 implement it;
@@ -237,6 +246,10 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-21 [1.9] Added property-based testing for the shared core using native Go fuzzing
+  (stdlib, no dependency; testing/quick is frozen, rapid would be a dependency). Targeted at
+  parsers, round-trips and arithmetic rather than every type. Placed after JSON (1.8) so the
+  round-trip property can cover it. No ADR.
 - 2026-11-20 [1.6-1.8, 4.3, 8.2, 11.1] RateRecord.Validate now also rejects amounts more precise
   than their currency allows and currencies outside money.MinorUnits (new step 1.6; EffectiveRate is
   1.7, JSON 1.8). Concern raised: providers with sloppy formatting would be auto-rejected. Resolved
