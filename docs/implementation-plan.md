@@ -196,7 +196,11 @@ verify in the AWS Pricing Calculator before deciding.
   round silently). A provider with a known quirk (e.g. float noise in amounts) may get an explicit,
   provider-specific normalization rule (e.g. round half-even to the currency's minor units),
   recorded in provider_map.json and proven by a fixture test. Cleanup happens per provider at the
-  parser boundary; RateRecord.Validate stays strict.
+  parser boundary; RateRecord.Validate stays strict. Details: parse amounts as exact decimals into
+  micros (never via float64; use json.Decoder.UseNumber() for JSON numbers); the rounding mode must
+  reproduce what the provider itself charges/displays (fixture: saved payload -> provider's shown
+  amount); emit a per-provider normalization metric so a change in the quirk is visible even though
+  nothing is rejected.
 - [ ] (Phase 11, with 11.1) Scheduled ISO 4217 check: a weekly GitHub Actions job fetches the official
   list published by SIX Group (ISO's maintenance agency), compares minor units and withdrawals for
   supported codes against money.MinorUnits, and opens an issue (never an auto-PR) on any difference.
