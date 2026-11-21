@@ -191,3 +191,18 @@ func (c RateClass) Valid() bool {
 		return false
 	}
 }
+
+// EffectiveRate returns the amount the recipient receives per unit the sender
+// pays, fees included: ReceiveAmount divided by TotalPaid, in Quote per Base.
+// Quotes are ranked by this value, higher being better, because it accounts
+// for fees that the advertised OfferedRate leaves out.
+//
+// EffectiveRate validates r first and returns the error from
+// [RateRecord.Validate] if r is not well formed.
+func (r RateRecord) EffectiveRate() (float64, error) {
+	if err := r.Validate(); err != nil {
+		return 0, fmt.Errorf("raterecord: effective rate: %w", err)
+	}
+
+	return float64(r.ReceiveAmount.Micros) / (float64(r.TotalPaid.Micros)), nil
+}

@@ -161,3 +161,63 @@ func TestRateClassWireValues(t *testing.T) {
 		t.Errorf("ClassPromoFirstTransfer = %q, want %q", ClassPromoFirstTransfer, "promo_first_transfer")
 	}
 }
+
+func TestEffectiveRate(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*RateRecord)
+		want   float64
+	}{
+		{
+			// NGN 110,050.00 received for CAD 102.99 paid (fee added on top).
+			name:   "CAD to NGN",
+			mutate: func(*RateRecord) {},
+			want:   1068.5503446936596,
+		},
+		{
+			// XOF has no minor unit and CAD has two. Dividing minor units would
+			// give 4.3; micros use one scale for both, so the rate is 430.
+			name: "CAD to XOF",
+			mutate: func(r *RateRecord) {
+				r.Pair.Quote = "XOF"
+				r.TotalPaid = r.SendAmount
+				r.Fees.Micros = 0
+				r.ReceiveAmount = money.Money{Micros: 43_000_000_000, Currency: "XOF"}
+			},
+			want: 430,
+		},
+		{
+			// The CAD 2.99 fee is deducted from the amount converted, so the
+			// sender pays CAD 100.00 in total. The rate must use TotalPaid, not
+			// SendAmount plus Fees, which would give 1036.60.
+			name: "fee deducted",
+			mutate: func(r *RateRecord) {
+				r.TotalPaid = r.SendAmount
+				r.ReceiveAmount.Micros = 106_759_500_000
+			},
+			want: 1067.595,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := validRecord()
+			tt.mutate(&r)
+			got, err := r.EffectiveRate()
+			if err != nil {
+				t.Fatalf("EffectiveRate() error = %v, want nil", err)
+			}
+			// Division rounds, so compare within a relative tolerance.
+			if math.Abs(got-tt.want) > 1e-9*tt.want {
+				t.Errorf("EffectiveRate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEffectiveRateInvalidRecord(t *testing.T) {
+	r := validRecord()
+	r.TotalPaid.Micros = 0
+	if _, err := r.EffectiveRate(); !errors.Is(err, ErrNonPositiveAmount) {
+		t.Errorf("EffectiveRate() error = %v, want errors.Is(err, %v)", err, ErrNonPositiveAmount)
+	}
+}
