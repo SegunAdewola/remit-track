@@ -5,20 +5,28 @@ import (
 	"testing"
 )
 
+// Stored amounts are read at this scale, so changing it would misread every
+// stored amount.
+func TestMicrosPerUnit(t *testing.T) {
+	if MicrosPerUnit != 1_000_000 {
+		t.Errorf("MicrosPerUnit = %d, want 1000000", MicrosPerUnit)
+	}
+}
+
 func TestMoneyValidate(t *testing.T) {
 	tests := []struct {
 		name    string
 		money   Money
 		wantErr error // nil if the value is valid
 	}{
-		{name: "valid CAD", money: Money{Amount: 1250, Currency: "CAD"}},
-		{name: "valid zero amount", money: Money{Amount: 0, Currency: "NGN"}},
-		{name: "valid negative amount", money: Money{Amount: -500, Currency: "CAD"}},
-		{name: "empty currency", money: Money{Amount: 100, Currency: ""}, wantErr: ErrInvalidCurrency},
-		{name: "lowercase currency", money: Money{Amount: 100, Currency: "cad"}, wantErr: ErrInvalidCurrency},
-		{name: "too short", money: Money{Amount: 100, Currency: "CA"}, wantErr: ErrInvalidCurrency},
-		{name: "too long", money: Money{Amount: 100, Currency: "CADD"}, wantErr: ErrInvalidCurrency},
-		{name: "digit in code", money: Money{Amount: 100, Currency: "CA1"}, wantErr: ErrInvalidCurrency},
+		{name: "valid CAD", money: Money{Micros: 12_500_000, Currency: "CAD"}},
+		{name: "valid zero amount", money: Money{Micros: 0, Currency: "NGN"}},
+		{name: "valid negative amount", money: Money{Micros: -5_000_000, Currency: "CAD"}},
+		{name: "empty currency", money: Money{Micros: 1_000_000, Currency: ""}, wantErr: ErrInvalidCurrency},
+		{name: "lowercase currency", money: Money{Micros: 1_000_000, Currency: "cad"}, wantErr: ErrInvalidCurrency},
+		{name: "too short", money: Money{Micros: 1_000_000, Currency: "CA"}, wantErr: ErrInvalidCurrency},
+		{name: "too long", money: Money{Micros: 1_000_000, Currency: "CADD"}, wantErr: ErrInvalidCurrency},
+		{name: "digit in code", money: Money{Micros: 1_000_000, Currency: "CA1"}, wantErr: ErrInvalidCurrency},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

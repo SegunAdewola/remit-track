@@ -98,15 +98,15 @@ func checkNonEmpty(name, s string, sentinel error) error {
 }
 
 func checkPositive(name string, m money.Money) error {
-	if m.Amount <= 0 {
-		return fmt.Errorf("%s %d %s: %w", name, m.Amount, m.Currency, ErrNonPositiveAmount)
+	if m.Micros <= 0 {
+		return fmt.Errorf("%s %d %s micros: %w", name, m.Micros, m.Currency, ErrNonPositiveAmount)
 	}
 	return nil
 }
 
 func checkNonNegative(name string, m money.Money) error {
-	if m.Amount < 0 {
-		return fmt.Errorf("%s %d %s: %w", name, m.Amount, m.Currency, ErrNegativeFees)
+	if m.Micros < 0 {
+		return fmt.Errorf("%s %d %s micros: %w", name, m.Micros, m.Currency, ErrNegativeFees)
 	}
 	return nil
 }

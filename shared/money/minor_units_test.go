@@ -2,9 +2,8 @@ package money
 
 import "testing"
 
-// Stored amounts are read through this table, so a changed value would
-// misread every stored amount in that currency. Each value is pinned to
-// ISO 4217.
+// Each value is pinned to ISO 4217, so changing the table also requires
+// changing this test.
 func TestMinorUnits(t *testing.T) {
 	tests := []struct {
 		code   string

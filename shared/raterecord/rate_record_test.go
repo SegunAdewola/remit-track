@@ -19,10 +19,10 @@ func validRecord() RateRecord {
 	return RateRecord{
 		Provider:      "sendapp",
 		Pair:          corridor.CurrencyPair{Base: "CAD", Quote: "NGN"},
-		SendAmount:    money.Money{Amount: 10000, Currency: "CAD"},
-		TotalPaid:     money.Money{Amount: 10299, Currency: "CAD"},
-		ReceiveAmount: money.Money{Amount: 11005000, Currency: "NGN"},
-		Fees:          money.Money{Amount: 299, Currency: "CAD"},
+		SendAmount:    money.Money{Micros: 100_000_000, Currency: "CAD"},
+		TotalPaid:     money.Money{Micros: 102_990_000, Currency: "CAD"},
+		ReceiveAmount: money.Money{Micros: 110_050_000_000, Currency: "NGN"},
+		Fees:          money.Money{Micros: 2_990_000, Currency: "CAD"},
 		OfferedRate:   1100.50,
 		PayIn:         PayMethod("bank_transfer"),
 		PayOut:        PayMethod("mobile_money"),
@@ -38,8 +38,8 @@ func TestRateRecordValidate(t *testing.T) {
 		wantErr error // nil if the record is valid
 	}{
 		{name: "valid record", mutate: func(*RateRecord) {}},
-		{name: "zero fees", mutate: func(r *RateRecord) { r.Fees.Amount = 0 }},
-		{name: "fees in receive currency", mutate: func(r *RateRecord) { r.Fees = money.Money{Amount: 330000, Currency: "NGN"} }},
+		{name: "zero fees", mutate: func(r *RateRecord) { r.Fees.Micros = 0 }},
+		{name: "fees in receive currency", mutate: func(r *RateRecord) { r.Fees = money.Money{Micros: 3_300_000_000, Currency: "NGN"} }},
 		{name: "promo class", mutate: func(r *RateRecord) { r.Class = ClassPromoFirstTransfer }},
 		{
 			// Some providers deduct the fee from the amount converted, so
@@ -47,7 +47,7 @@ func TestRateRecordValidate(t *testing.T) {
 			name: "fee deducted, not added",
 			mutate: func(r *RateRecord) {
 				r.TotalPaid = r.SendAmount
-				r.ReceiveAmount.Amount = 10675950
+				r.ReceiveAmount.Micros = 106_759_500_000
 			},
 		},
 
@@ -59,10 +59,10 @@ func TestRateRecordValidate(t *testing.T) {
 		{name: "malformed quote", mutate: func(r *RateRecord) { r.Pair.Quote = "ngn" }, wantErr: ErrMalformedPair},
 		{name: "base equals quote", mutate: func(r *RateRecord) { r.Pair.Quote = "CAD" }, wantErr: ErrMalformedPair},
 
-		{name: "zero send amount", mutate: func(r *RateRecord) { r.SendAmount.Amount = 0 }, wantErr: ErrNonPositiveAmount},
-		{name: "negative total paid", mutate: func(r *RateRecord) { r.TotalPaid.Amount = -1 }, wantErr: ErrNonPositiveAmount},
-		{name: "zero receive amount", mutate: func(r *RateRecord) { r.ReceiveAmount.Amount = 0 }, wantErr: ErrNonPositiveAmount},
-		{name: "negative fees", mutate: func(r *RateRecord) { r.Fees.Amount = -1 }, wantErr: ErrNegativeFees},
+		{name: "zero send amount", mutate: func(r *RateRecord) { r.SendAmount.Micros = 0 }, wantErr: ErrNonPositiveAmount},
+		{name: "negative total paid", mutate: func(r *RateRecord) { r.TotalPaid.Micros = -1 }, wantErr: ErrNonPositiveAmount},
+		{name: "zero receive amount", mutate: func(r *RateRecord) { r.ReceiveAmount.Micros = 0 }, wantErr: ErrNonPositiveAmount},
+		{name: "negative fees", mutate: func(r *RateRecord) { r.Fees.Micros = -1 }, wantErr: ErrNegativeFees},
 
 		{name: "send amount in quote currency", mutate: func(r *RateRecord) { r.SendAmount.Currency = "NGN" }, wantErr: ErrCurrencyMismatch},
 		{name: "total paid in quote currency", mutate: func(r *RateRecord) { r.TotalPaid.Currency = "NGN" }, wantErr: ErrCurrencyMismatch},
