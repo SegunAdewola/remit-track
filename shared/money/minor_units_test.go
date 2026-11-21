@@ -38,3 +38,13 @@ func TestMinorUnits(t *testing.T) {
 		})
 	}
 }
+
+// Money cannot represent more than 6 decimal places, and a larger value would
+// make callers divide by zero when computing a currency's smallest step.
+func TestMinorUnitsFitInMicros(t *testing.T) {
+	for code, digits := range minorUnits {
+		if digits < 0 || digits > 6 {
+			t.Errorf("minorUnits[%q] = %d, want 0 to 6 so it fits in micros", code, digits)
+		}
+	}
+}
