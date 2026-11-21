@@ -46,6 +46,8 @@ var (
 	ErrEmptyPayMethod    = errors.New("empty pay method")
 	ErrInvalidClass      = errors.New("invalid class")
 	ErrZeroTimestamp     = errors.New("zero timestamp")
+	ErrExcessPrecision   = errors.New("excess precision")
+	ErrUnknownCurrency   = errors.New("currency not in minor-units table")
 )
 
 // Validate checks that r is well formed. If it is not, Validate returns an
@@ -69,6 +71,10 @@ func (r RateRecord) Validate() error {
 		checkCurrency("total paid", r.TotalPaid, base),
 		checkCurrency("receive amount", r.ReceiveAmount, quote),
 		checkCurrency("fees", r.Fees, base, quote),
+		checkPrecision("send amount", r.SendAmount),
+		checkPrecision("total paid", r.TotalPaid),
+		checkPrecision("receive amount", r.ReceiveAmount),
+		checkPrecision("fees", r.Fees),
 		checkRate(r.OfferedRate),
 		checkNonEmpty("pay-in method", string(r.PayIn), ErrEmptyPayMethod),
 		checkNonEmpty("pay-out method", string(r.PayOut), ErrEmptyPayMethod),
@@ -107,6 +113,26 @@ func checkPositive(name string, m money.Money) error {
 func checkNonNegative(name string, m money.Money) error {
 	if m.Micros < 0 {
 		return fmt.Errorf("%s %d %s micros: %w", name, m.Micros, m.Currency, ErrNegativeFees)
+	}
+	return nil
+}
+
+// checkPrecision reports m if its currency is not in money.MinorUnits, or if m
+// has more decimal places than the currency allows.
+func checkPrecision(name string, m money.Money) error {
+	digits, ok := money.MinorUnits(m.Currency)
+	if !ok {
+		return fmt.Errorf("%s in %q: %w", name, m.Currency, ErrUnknownCurrency)
+	}
+	// step is the smallest amount the currency can express, in micros:
+	// 10_000 for 2 digits (one cent), 1_000_000 for 0 digits (one franc).
+	step := int64(money.MicrosPerUnit)
+	for range digits {
+		step /= 10
+	}
+	if m.Micros%step != 0 {
+		return fmt.Errorf("%s %d %s micros, want a multiple of %d: %w",
+			name, m.Micros, m.Currency, step, ErrExcessPrecision)
 	}
 	return nil
 }

@@ -70,6 +70,36 @@ func TestRateRecordValidate(t *testing.T) {
 		{name: "fees in unrelated currency", mutate: func(r *RateRecord) { r.Fees.Currency = "EUR" }, wantErr: ErrCurrencyMismatch},
 		{name: "malformed money currency", mutate: func(r *RateRecord) { r.SendAmount.Currency = "cad" }, wantErr: ErrCurrencyMismatch},
 
+		// Amounts may not be more precise than their currency's minor units.
+		{
+			// XOF has no minor unit, so whole francs are valid.
+			name: "whole-unit XOF amount",
+			mutate: func(r *RateRecord) {
+				r.Pair.Quote = "XOF"
+				r.ReceiveAmount = money.Money{Micros: 43_000_000_000, Currency: "XOF"}
+			},
+		},
+		{name: "sub-cent send amount", mutate: func(r *RateRecord) { r.SendAmount.Micros = 100_005_000 }, wantErr: ErrExcessPrecision},
+		{name: "sub-cent fees", mutate: func(r *RateRecord) { r.Fees.Micros = 2_995_000 }, wantErr: ErrExcessPrecision},
+		{name: "float noise in receive amount", mutate: func(r *RateRecord) { r.ReceiveAmount.Micros = 110_050_000_001 }, wantErr: ErrExcessPrecision},
+		{
+			name: "fractional XOF amount",
+			mutate: func(r *RateRecord) {
+				r.Pair.Quote = "XOF"
+				r.ReceiveAmount = money.Money{Micros: 430_500_000, Currency: "XOF"}
+			},
+			wantErr: ErrExcessPrecision,
+		},
+		{
+			// JPY is a well-formed code that is not in money.MinorUnits.
+			name: "currency outside the minor-units table",
+			mutate: func(r *RateRecord) {
+				r.Pair.Quote = "JPY"
+				r.ReceiveAmount = money.Money{Micros: 15_000_000_000, Currency: "JPY"}
+			},
+			wantErr: ErrUnknownCurrency,
+		},
+
 		{name: "zero rate", mutate: func(r *RateRecord) { r.OfferedRate = 0 }, wantErr: ErrInvalidRate},
 		{name: "negative rate", mutate: func(r *RateRecord) { r.OfferedRate = -1 }, wantErr: ErrInvalidRate},
 		{name: "NaN rate", mutate: func(r *RateRecord) { r.OfferedRate = math.NaN() }, wantErr: ErrInvalidRate},
