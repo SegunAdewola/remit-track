@@ -14,9 +14,12 @@ import (
 // Micros is an integer so that arithmetic on money is exact. Money places no
 // constraint on its sign; callers decide whether zero or negative amounts are
 // allowed.
+//
+// In JSON, Micros is a string, such as {"micros":"12500000","currency":"CAD"},
+// so that languages without exact 64-bit integers read it without loss.
 type Money struct {
-	Micros   int64
-	Currency string // ISO 4217 code, such as "CAD"
+	Micros   int64  `json:"micros,string"` // millionths of one whole unit
+	Currency string `json:"currency"`      // ISO 4217 code, such as "CAD"
 }
 
 // MicrosPerUnit is the number of micros in one whole unit of any currency.

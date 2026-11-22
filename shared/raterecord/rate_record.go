@@ -21,18 +21,23 @@ import (
 // them to agree with each other. For example, TotalPaid need not equal
 // SendAmount plus Fees, since some providers deduct fees from the amount
 // converted instead of adding them.
+//
+// The JSON form is the message scrapers send to ingestion. Its field names
+// are a contract between separately deployed programs and must not change.
+// Decoding ignores unknown fields and does not validate; call Validate after
+// decoding.
 type RateRecord struct {
-	Provider      string                // provider slug, such as "sendapp"
-	Pair          corridor.CurrencyPair // Base is sent, Quote is received
-	SendAmount    money.Money           // amount quoted for, in Base
-	TotalPaid     money.Money           // amount the sender pays, in Base
-	ReceiveAmount money.Money           // amount the recipient receives, in Quote
-	Fees          money.Money           // total fees, in Base or Quote
-	OfferedRate   float64               // advertised exchange rate, for display only
-	PayIn         PayMethod             // how the sender pays
-	PayOut        PayMethod             // how the recipient is paid
-	Class         RateClass             // pricing the quote applies to
-	Timestamp     time.Time             // when the quote was observed
+	Provider      string                `json:"provider"`      // provider slug, such as "sendapp"
+	Pair          corridor.CurrencyPair `json:"pair"`          // Base is sent, Quote is received
+	SendAmount    money.Money           `json:"sendAmount"`    // amount quoted for, in Base
+	TotalPaid     money.Money           `json:"totalPaid"`     // amount the sender pays, in Base
+	ReceiveAmount money.Money           `json:"receiveAmount"` // amount the recipient receives, in Quote
+	Fees          money.Money           `json:"fees"`          // total fees, in Base or Quote
+	OfferedRate   float64               `json:"offeredRate"`   // advertised exchange rate, for display only
+	PayIn         PayMethod             `json:"payIn"`         // how the sender pays
+	PayOut        PayMethod             `json:"payOut"`        // how the recipient is paid
+	Class         RateClass             `json:"class"`         // pricing the quote applies to
+	Timestamp     time.Time             `json:"timestamp"`     // when the quote was observed
 }
 
 // Errors wrapped by the error that [RateRecord.Validate] returns.

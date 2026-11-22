@@ -1,6 +1,7 @@
 package money
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 )
@@ -41,5 +42,36 @@ func TestMoneyValidate(t *testing.T) {
 				t.Errorf("Validate() = %v, want errors.Is(err, %v)", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+// The JSON form is a wire contract. Micros is a string, as in protobuf JSON,
+// so that languages without exact 64-bit integers read it without loss.
+func TestMoneyJSON(t *testing.T) {
+	m := Money{Micros: 12_500_000, Currency: "CAD"}
+	const want = `{"micros":"12500000","currency":"CAD"}`
+
+	got, err := json.Marshal(m)
+	if err != nil {
+		t.Fatalf("json.Marshal(%+v) error = %v", m, err)
+	}
+	if string(got) != want {
+		t.Errorf("json.Marshal(%+v) = %s, want %s", m, got, want)
+	}
+
+	var back Money
+	if err := json.Unmarshal([]byte(want), &back); err != nil {
+		t.Fatalf("json.Unmarshal(%s) error = %v", want, err)
+	}
+	if back != m {
+		t.Errorf("json.Unmarshal(%s) = %+v, want %+v", want, back, m)
+	}
+}
+
+func TestMoneyJSONRejectsNumericMicros(t *testing.T) {
+	const in = `{"micros":12500000,"currency":"CAD"}`
+	var m Money
+	if err := json.Unmarshal([]byte(in), &m); err == nil {
+		t.Errorf("json.Unmarshal(%s) = %+v, want error for unquoted micros", in, m)
 	}
 }

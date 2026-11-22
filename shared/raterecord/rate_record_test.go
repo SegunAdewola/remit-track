@@ -1,8 +1,11 @@
 package raterecord
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,7 +30,7 @@ func validRecord() RateRecord {
 		PayIn:         PayMethod("bank_transfer"),
 		PayOut:        PayMethod("mobile_money"),
 		Class:         ClassStandard,
-		Timestamp:     time.Unix(1_700_000_000, 0),
+		Timestamp:     time.Unix(1_700_000_000, 0).UTC(),
 	}
 }
 
@@ -219,5 +222,73 @@ func TestEffectiveRateInvalidRecord(t *testing.T) {
 	r.TotalPaid.Micros = 0
 	if _, err := r.EffectiveRate(); !errors.Is(err, ErrNonPositiveAmount) {
 		t.Errorf("EffectiveRate() error = %v, want errors.Is(err, %v)", err, ErrNonPositiveAmount)
+	}
+}
+
+// validRecordJSON is validRecord in its wire form. Scrapers and the ingestion
+// consumer depend on these names, so changing one is a breaking change.
+const validRecordJSON = `{
+	"provider": "sendapp",
+	"pair": {"base": "CAD", "quote": "NGN"},
+	"sendAmount": {"micros": "100000000", "currency": "CAD"},
+	"totalPaid": {"micros": "102990000", "currency": "CAD"},
+	"receiveAmount": {"micros": "110050000000", "currency": "NGN"},
+	"fees": {"micros": "2990000", "currency": "CAD"},
+	"offeredRate": 1100.5,
+	"payIn": "bank_transfer",
+	"payOut": "mobile_money",
+	"class": "standard",
+	"timestamp": "2023-11-14T22:13:20Z"
+}`
+
+func TestRateRecordJSONFieldNames(t *testing.T) {
+	got, err := json.Marshal(validRecord())
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	// Compare decoded values so the test pins names and values, not key
+	// order or whitespace.
+	var gotFields, wantFields map[string]any
+	if err := json.Unmarshal(got, &gotFields); err != nil {
+		t.Fatalf("decoding marshaled record: %v", err)
+	}
+	if err := json.Unmarshal([]byte(validRecordJSON), &wantFields); err != nil {
+		t.Fatalf("decoding validRecordJSON: %v", err)
+	}
+	if !reflect.DeepEqual(gotFields, wantFields) {
+		t.Errorf("json.Marshal(validRecord()) = %s\nwant %s", got, validRecordJSON)
+	}
+}
+
+func TestRateRecordJSONRoundTrip(t *testing.T) {
+	want := validRecord()
+	data, err := json.Marshal(want)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	var got RateRecord
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("json.Unmarshal(%s) error = %v", data, err)
+	}
+	if !got.Timestamp.Equal(want.Timestamp) {
+		t.Errorf("round-trip Timestamp = %v, want %v", got.Timestamp, want.Timestamp)
+	}
+	// time.Time must be compared with Equal, so compare the rest separately.
+	got.Timestamp, want.Timestamp = time.Time{}, time.Time{}
+	if got != want {
+		t.Errorf("round-trip = %+v, want %+v", got, want)
+	}
+}
+
+// Producers may add fields before consumers are updated, so decoding ignores
+// fields it does not know.
+func TestRateRecordJSONIgnoresUnknownFields(t *testing.T) {
+	in := strings.Replace(validRecordJSON, `"provider": "sendapp",`, `"provider": "sendapp", "addedLater": true,`, 1)
+	var got RateRecord
+	if err := json.Unmarshal([]byte(in), &got); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v, want nil", err)
+	}
+	if got.Provider != "sendapp" {
+		t.Errorf("Provider = %q, want %q", got.Provider, "sendapp")
 	}
 }

@@ -1,6 +1,7 @@
 package corridor
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 )
@@ -58,5 +59,27 @@ func TestParseStringRoundTrip(t *testing.T) {
 	}
 	if got := c.String(); got != s {
 		t.Errorf("round-trip: Parse(%q).String() = %q, want %q", s, got, s)
+	}
+}
+
+// The JSON form is a wire contract, so the field names are pinned.
+func TestCurrencyPairJSON(t *testing.T) {
+	c := CurrencyPair{Base: "CAD", Quote: "NGN"}
+	const want = `{"base":"CAD","quote":"NGN"}`
+
+	got, err := json.Marshal(c)
+	if err != nil {
+		t.Fatalf("json.Marshal(%+v) error = %v", c, err)
+	}
+	if string(got) != want {
+		t.Errorf("json.Marshal(%+v) = %s, want %s", c, got, want)
+	}
+
+	var back CurrencyPair
+	if err := json.Unmarshal([]byte(want), &back); err != nil {
+		t.Fatalf("json.Unmarshal(%s) error = %v", want, err)
+	}
+	if back != c {
+		t.Errorf("json.Unmarshal(%s) = %+v, want %+v", want, back, c)
 	}
 }

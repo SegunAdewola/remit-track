@@ -11,10 +11,11 @@ import (
 
 // CurrencyPair identifies a corridor by the currency sent (Base) and the
 // currency received (Quote). Its string form is "BASE:QUOTE", such as
-// "CAD:NGN".
+// "CAD:NGN". Its JSON form is an object, {"base":"CAD","quote":"NGN"}, so
+// readers in any language need no custom parsing.
 type CurrencyPair struct {
-	Base  string
-	Quote string
+	Base  string `json:"base"`
+	Quote string `json:"quote"`
 }
 
 // ErrInvalidPair indicates a string that is not a valid "BASE:QUOTE" pair.
