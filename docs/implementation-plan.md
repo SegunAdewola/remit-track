@@ -128,6 +128,7 @@ approach appears, a library misbehaves):
 - [ ] 13.4 feat(server): on-demand live quoting for exact amounts - fan-out to provider quote endpoints, deadline-bounded, single-flight coalesced, short-TTL cached, partial results tolerated; API-quote providers only. Deferred until the benchmark cache proves insufficient.
 - [ ] 13.5 feat(backend): landing default resolver - send country from CloudFront-Viewer-Country, corridor from a popularity prior + remembered selector, amount from user-last -> corridor median -> global fallback (static shows population default, hydration personalizes). Deferred; needs usage data.
 - [ ] 13.6 feat(backend): demand-shaped benchmark amounts - track per-corridor requested-amount distribution and tune the precomputed benchmark set (higher / more granular) to maximize cache hit rate. Deferred; needs traffic.
+- [ ] 13.7 test(security): AI-driven penetration test of staging before launch, then periodically. Candidate: ARTEX (open-source multi-agent LLM pentest framework, Go). Conditions: confirm it is maintained at the time; run only against our own staging, from an isolated machine whose UI/DB are never internet-exposed (exposed ARTEX servers and criminal misuse have been widely reported); written scope; human approval before exploits. A commercial AI pentest is the alternative. Prerequisite: the cheaper layers in the Security follow-ups are already in place.
 
 ---
 
@@ -228,6 +229,11 @@ verify in the AWS Pricing Calculator before deciding.
   empty failure corpus (start the healer with the registry + fixtures, add RAG when there is history).
 
 ### Security (each tagged with the step that must include it)
+- [ ] (next lint change) Enable gosec in .golangci.yml (static security analysis; ships with
+  golangci-lint, no new dependency).
+- [ ] (with CI hardening) Secret scanning: gitleaks in CI and/or GitHub secret scanning.
+- [ ] (Phase 9, once staging exists) OWASP ZAP baseline scan of the deployed API in CI (DAST).
+- [ ] (before launch) AI-driven pentest of staging: roadmap 13.7, only after the layers above.
 - [ ] (Phase 12 / 12.5) Agents read attacker-controlled text (ToS pages, sniffed XHR). Least-privilege
   GITHUB_TOKEN in agent workflows, no secrets exposed to agent-PR-triggered workflows (avoid
   `pull_request_target`), AWS via GitHub OIDC with narrow roles, never long-lived keys.
