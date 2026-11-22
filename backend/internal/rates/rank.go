@@ -63,30 +63,12 @@ var ErrMixedComparison = errors.New("quote does not match the requested comparis
 // a different corridor or send amount than want, Rank returns an error
 // wrapping ErrMixedComparison.
 func Rank(want Comparison, records []raterecord.RateRecord, opts RankOptions) ([]Quote, []Skipped, error) {
-	if err := checkComparison(want, records); err != nil {
-		return nil, nil, err
-	}
-	quotes, skipped := buildQuotes(records, opts)
-	slices.SortFunc(quotes, compareQuotes)
-	for i := range quotes {
-		quotes[i].Position = i + 1
-	}
-	return quotes, skipped, nil
-}
-
-// checkComparison reports the first record that is not for want.
-func checkComparison(want Comparison, records []raterecord.RateRecord) error {
 	for _, r := range records {
 		if r.Pair != want.Pair || r.SendAmount != want.SendAmount {
-			return fmt.Errorf("rates: quote from %q for %s: %w", r.Provider, r.Pair, ErrMixedComparison)
+			return nil, nil, fmt.Errorf("rates: quote from %q for %s: %w", r.Provider, r.Pair, ErrMixedComparison)
 		}
 	}
-	return nil
-}
 
-// buildQuotes turns the valid records the viewer may see into unranked quotes,
-// and returns the invalid records separately.
-func buildQuotes(records []raterecord.RateRecord, opts RankOptions) ([]Quote, []Skipped) {
 	var quotes []Quote
 	var skipped []Skipped
 	for _, r := range records {
@@ -100,7 +82,12 @@ func buildQuotes(records []raterecord.RateRecord, opts RankOptions) ([]Quote, []
 		}
 		quotes = append(quotes, Quote{Record: r, EffectiveRate: rate})
 	}
-	return quotes, skipped
+
+	slices.SortFunc(quotes, compareQuotes)
+	for i := range quotes {
+		quotes[i].Position = i + 1
+	}
+	return quotes, skipped, nil
 }
 
 // hides reports whether the viewer described by o should not see r: every
