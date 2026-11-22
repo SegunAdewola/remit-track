@@ -1,0 +1,36 @@
+name: fuzz
+
+# Seed inputs run on every PR through `make test`. This workflow runs the
+# fuzzers themselves, which take minutes, nightly and on demand.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: fuzz shared
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Fuzz
+        run: make fuzz FUZZTIME=60s
+
+      - name: Upload failing inputs
+        # A failure writes the input under testdata/fuzz. Commit it so it
+        # becomes a permanent seed (a regression test).
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-failures
+          path: shared/**/testdata/fuzz/

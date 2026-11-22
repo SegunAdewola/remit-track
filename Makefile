@@ -6,8 +6,9 @@
 # non-zero on an empty module, so skipping keeps the empty workspace green and
 # self-heals as packages land. Run `make <target>`.
 MODULES := shared backend lambdas
+FUZZTIME ?= 30s
 
-.PHONY: test lint build up down
+.PHONY: test lint build fuzz up down
 
 ## test: run all tests in every non-empty module
 test:
@@ -40,6 +41,17 @@ build:
 		else \
 			echo "==> skip $$m (no .go files)"; \
 		fi; \
+	done
+
+## fuzz: run every fuzz target in shared for FUZZTIME each (default 30s).
+## Go fuzzes one target per run, so targets are listed and run in turn.
+## Seed inputs already run in `make test`; this explores beyond them.
+fuzz:
+	@cd shared && for pkg in $$(go list ./...); do \
+		for f in $$(go test -list '^Fuzz' $$pkg | grep '^Fuzz'); do \
+			echo "==> fuzz $$pkg $$f"; \
+			go test $$pkg -run '^$$' -fuzz "^$$f\$$" -fuzztime $(FUZZTIME) || exit 1; \
+		done; \
 	done
 
 ## up: start local dependencies (Postgres) in the background
