@@ -83,3 +83,26 @@ func TestCurrencyPairJSON(t *testing.T) {
 		t.Errorf("json.Unmarshal(%s) = %+v, want %+v", want, back, c)
 	}
 }
+
+// FuzzParse checks two properties for any input string: every error wraps
+// ErrInvalidPair, and any string Parse accepts is already in canonical form,
+// so String returns it unchanged.
+func FuzzParse(f *testing.F) {
+	// Seed inputs run in every go test; the fuzzer mutates them when run
+	// with -fuzz.
+	for _, s := range []string{"CAD:NGN", "", ":", "CAD", "cad:ngn", "CAD:NGN:EUR", "CA1:NGN", "CAD: NGN"} {
+		f.Add(s)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		c, err := Parse(s)
+		if err != nil {
+			if !errors.Is(err, ErrInvalidPair) {
+				t.Fatalf("Parse(%q) error = %v, want errors.Is(err, ErrInvalidPair)", s, err)
+			}
+			return
+		}
+		if got := c.String(); got != s {
+			t.Errorf("Parse(%q).String() = %q, want %q", s, got, s)
+		}
+	})
+}

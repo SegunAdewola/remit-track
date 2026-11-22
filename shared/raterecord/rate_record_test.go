@@ -55,6 +55,11 @@ func TestRateRecordValidate(t *testing.T) {
 		},
 
 		{name: "empty provider", mutate: func(r *RateRecord) { r.Provider = "" }, wantErr: ErrEmptyProvider},
+		// Identifiers are lowercase ASCII slugs, so JSON cannot alter them.
+		{name: "provider with capitals", mutate: func(r *RateRecord) { r.Provider = "SendApp" }, wantErr: ErrInvalidProvider},
+		{name: "provider with space", mutate: func(r *RateRecord) { r.Provider = "send app" }, wantErr: ErrInvalidProvider},
+		{name: "provider with invalid UTF-8", mutate: func(r *RateRecord) { r.Provider = "send\xffapp" }, wantErr: ErrInvalidProvider},
+		{name: "provider with hyphen and digits", mutate: func(r *RateRecord) { r.Provider = "remit-2-go" }},
 
 		// Validate checks that the pair is well formed, not that it is supported.
 		{name: "empty pair", mutate: func(r *RateRecord) { r.Pair = corridor.CurrencyPair{} }, wantErr: ErrMalformedPair},
@@ -110,6 +115,8 @@ func TestRateRecordValidate(t *testing.T) {
 
 		{name: "empty pay-in", mutate: func(r *RateRecord) { r.PayIn = "" }, wantErr: ErrEmptyPayMethod},
 		{name: "empty pay-out", mutate: func(r *RateRecord) { r.PayOut = "" }, wantErr: ErrEmptyPayMethod},
+		{name: "pay-in with capitals", mutate: func(r *RateRecord) { r.PayIn = "Bank_Transfer" }, wantErr: ErrInvalidPayMethod},
+		{name: "pay-out with invalid UTF-8", mutate: func(r *RateRecord) { r.PayOut = "mobile\xffmoney" }, wantErr: ErrInvalidPayMethod},
 
 		{name: "empty class", mutate: func(r *RateRecord) { r.Class = "" }, wantErr: ErrInvalidClass},
 		{name: "unknown class", mutate: func(r *RateRecord) { r.Class = RateClass("vip") }, wantErr: ErrInvalidClass},
@@ -291,4 +298,98 @@ func TestRateRecordJSONIgnoresUnknownFields(t *testing.T) {
 	if got.Provider != "sendapp" {
 		t.Errorf("Provider = %q, want %q", got.Provider, "sendapp")
 	}
+}
+
+// FuzzCheckPrecision checks that, for a two-decimal and a zero-decimal
+// currency, whole multiples of the currency's smallest step are accepted and
+// any value between two steps is rejected.
+func FuzzCheckPrecision(f *testing.F) {
+	f.Add(int64(100), int64(1))
+	f.Add(int64(0), int64(5_000))
+	f.Add(int64(-7), int64(999_999))
+	steps := map[string]int64{"CAD": 10_000, "XOF": 1_000_000}
+	f.Fuzz(func(t *testing.T, k, r int64) {
+		k %= 1_000_000_000_000 // keeps k*step within int64
+		for code, step := range steps {
+			whole := money.Money{Micros: k * step, Currency: code}
+			if err := checkPrecision("amount", whole); err != nil {
+				t.Errorf("checkPrecision(%+v) = %v, want nil", whole, err)
+			}
+			off := r % step
+			if off < 0 {
+				off = -off
+			}
+			if off == 0 {
+				continue
+			}
+			between := money.Money{Micros: k*step + off, Currency: code}
+			if err := checkPrecision("amount", between); !errors.Is(err, ErrExcessPrecision) {
+				t.Errorf("checkPrecision(%+v) = %v, want errors.Is(err, ErrExcessPrecision)", between, err)
+			}
+		}
+	})
+}
+
+// FuzzEffectiveRate checks that every valid record has a finite, positive
+// effective rate, and that receiving more for the same payment never lowers it.
+func FuzzEffectiveRate(f *testing.F) {
+	f.Add(int64(10_299), int64(11_005_000))
+	f.Add(int64(1), int64(1))
+	f.Add(int64(1<<40), int64(1))
+	f.Fuzz(func(t *testing.T, paidCents, receiveKobo int64) {
+		const limit = 1_000_000_000_000 // keeps micros within int64
+		r := validRecord()
+		r.TotalPaid.Micros = paidCents % limit * 10_000
+		r.ReceiveAmount.Micros = receiveKobo % limit * 10_000
+		rate, err := r.EffectiveRate()
+		if err != nil {
+			return // invalid records are covered by TestRateRecordValidate
+		}
+		if math.IsNaN(rate) || math.IsInf(rate, 0) || rate <= 0 {
+			t.Fatalf("EffectiveRate() = %v for %+v, want finite and > 0", rate, r)
+		}
+		r.ReceiveAmount.Micros += 10_000
+		higher, err := r.EffectiveRate()
+		if err != nil {
+			t.Fatalf("EffectiveRate() after raising ReceiveAmount: %v", err)
+		}
+		if higher < rate {
+			t.Errorf("EffectiveRate() fell from %v to %v when ReceiveAmount rose", rate, higher)
+		}
+	})
+}
+
+// FuzzRateRecordJSON checks that every valid record survives a JSON round trip.
+func FuzzRateRecordJSON(f *testing.F) {
+	f.Add("sendapp", int64(10_000), 1100.5)
+	f.Add("", int64(0), 0.0)
+	f.Add("lemfi", int64(1), 1e-9)
+	f.Fuzz(func(t *testing.T, provider string, sendCents int64, rate float64) {
+		want := validRecord()
+		// Provider, PayIn and PayOut share the slug rule, so one fuzzed string
+		// exercises all three.
+		want.Provider = provider
+		want.PayIn = PayMethod(provider)
+		want.PayOut = PayMethod(provider)
+		want.SendAmount.Micros = sendCents % 1_000_000_000_000 * 10_000
+		want.OfferedRate = rate
+		if want.Validate() != nil {
+			return
+		}
+		data, err := json.Marshal(want)
+		if err != nil {
+			t.Fatalf("json.Marshal(%+v) error = %v", want, err)
+		}
+		var got RateRecord
+		if err := json.Unmarshal(data, &got); err != nil {
+			t.Fatalf("json.Unmarshal(%s) error = %v", data, err)
+		}
+		if !got.Timestamp.Equal(want.Timestamp) {
+			t.Errorf("round-trip Timestamp = %v, want %v", got.Timestamp, want.Timestamp)
+		}
+		got.Timestamp, want.Timestamp = time.Time{}, time.Time{}
+		if got != want {
+			t.Errorf("round-trip = %+v, want %+v", got, want)
+		}
+	})
 }

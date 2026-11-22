@@ -43,12 +43,14 @@ type RateRecord struct {
 // Errors wrapped by the error that [RateRecord.Validate] returns.
 var (
 	ErrEmptyProvider     = errors.New("empty provider")
+	ErrInvalidProvider   = errors.New("invalid provider slug")
 	ErrMalformedPair     = errors.New("malformed currency pair")
 	ErrNonPositiveAmount = errors.New("non-positive amount")
 	ErrNegativeFees      = errors.New("negative fees")
 	ErrCurrencyMismatch  = errors.New("currency mismatch")
 	ErrInvalidRate       = errors.New("invalid rate")
 	ErrEmptyPayMethod    = errors.New("empty pay method")
+	ErrInvalidPayMethod  = errors.New("invalid pay method slug")
 	ErrInvalidClass      = errors.New("invalid class")
 	ErrZeroTimestamp     = errors.New("zero timestamp")
 	ErrExcessPrecision   = errors.New("excess precision")
@@ -67,7 +69,7 @@ func (r RateRecord) Validate() error {
 	}
 	base, quote := r.Pair.Base, r.Pair.Quote
 	err := errors.Join(
-		checkNonEmpty("provider", r.Provider, ErrEmptyProvider),
+		checkSlug("provider", r.Provider, ErrEmptyProvider, ErrInvalidProvider),
 		checkPositive("send amount", r.SendAmount),
 		checkPositive("total paid", r.TotalPaid),
 		checkPositive("receive amount", r.ReceiveAmount),
@@ -81,8 +83,8 @@ func (r RateRecord) Validate() error {
 		checkPrecision("receive amount", r.ReceiveAmount),
 		checkPrecision("fees", r.Fees),
 		checkRate(r.OfferedRate),
-		checkNonEmpty("pay-in method", string(r.PayIn), ErrEmptyPayMethod),
-		checkNonEmpty("pay-out method", string(r.PayOut), ErrEmptyPayMethod),
+		checkSlug("pay-in method", string(r.PayIn), ErrEmptyPayMethod, ErrInvalidPayMethod),
+		checkSlug("pay-out method", string(r.PayOut), ErrEmptyPayMethod, ErrInvalidPayMethod),
 		checkClass(r.Class),
 		checkTimestamp(r.Timestamp),
 	)
@@ -100,12 +102,24 @@ func checkPair(p corridor.CurrencyPair) error {
 	return nil
 }
 
-// checkNonEmpty returns sentinel, wrapped with name, if s is empty.
-func checkNonEmpty(name, s string, sentinel error) error {
+// checkSlug reports s, wrapping emptyErr if it is empty or invalidErr if it
+// contains anything other than lowercase ASCII letters, digits, '_' and '-'.
+// Restricting identifiers to these bytes means JSON encoding never alters them.
+func checkSlug(name, s string, emptyErr, invalidErr error) error {
 	if s == "" {
-		return fmt.Errorf("%s: %w", name, sentinel)
+		return fmt.Errorf("%s: %w", name, emptyErr)
+	}
+	for i := 0; i < len(s); i++ {
+		if !isSlugByte(s[i]) {
+			return fmt.Errorf("%s %q: %w", name, s, invalidErr)
+		}
 	}
 	return nil
+}
+
+// isSlugByte reports whether c is a lowercase ASCII letter, a digit, '_' or '-'.
+func isSlugByte(c byte) bool {
+	return 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-'
 }
 
 func checkPositive(name string, m money.Money) error {
