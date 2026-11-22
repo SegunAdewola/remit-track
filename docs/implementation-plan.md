@@ -46,7 +46,7 @@ approach appears, a library misbehaves):
 
 ## Phase 2 - Rates module (persistence of quotes; modules per ADR 0002)
 - [x] 2.1 chore(backend): module layout (doc.go per module: rates, ingestion, alerting, accounts, outbound, httpapi, platform/postgres) + depguard rule in .golangci.yml forbidding imports between module packages (cmd/ and platform/ exempt). Test: `golangci-lint config verify`; a deliberate cross-module import fails lint (checked once, then removed).
-- [ ] 2.2 feat(rates): Quote view (a ranked comparison result carrying EffectiveRate + promo badge) + Rank (pure): orders by EffectiveRate, ranks standard class only, flags promos. Test: ordering, promo exclusion from rank, badge (unit).
+- [ ] 2.2 feat(rates): Quote (Record, EffectiveRate, Position, IsPromo) + Rank(records, RankOptions) (pure). Ranks standard and promo quotes together by EffectiveRate; RankOptions.HidePromos drops every promo, RankOptions.PromoIneligible drops first-transfer promos from providers the viewer has already used. Ties break by provider slug, then pay-in, then pay-out. Invalid records are skipped and returned with their errors (the page still renders); mixed corridors or send amounts return an error (a programming mistake). Test: ordering, tie-breaks independent of input order, HidePromos, PromoIneligible, skipped invalid records, mixed-input error (unit).
 - [ ] 2.3 feat(platform): platform/postgres connection pool + config from env. Test: connect and ping (integration).
 - [ ] 2.4 feat(rates): migration creating schema `rates` with historical_rates + current_rates and full quote columns (send_amount_micros, total_paid_micros, receive_amount_micros, fees_micros + currencies, offered_rate, pay_in, pay_out, rate_class; money as bigint micros per ADR 0001) + UNIQUE(provider, currency_pair, send_amount_micros, pay_in, pay_out, rate_class, scrape_timestamp). Decide the migration tool here (possible new dependency: discuss). Test: up/down applies (integration, real Postgres).
 - [ ] 2.5 feat(rates): Save(ctx, []RateRecord): idempotent insert into rates.historical_rates (ON CONFLICT on the full quote key DO NOTHING). Test: duplicate ignored, distinct timestamps/amounts kept (integration).
@@ -68,12 +68,13 @@ approach appears, a library misbehaves):
 - [ ] 5.5 feat(backend): alerting.OnBatch satisfies ingestion.BatchObserver; cmd/api-server wires it so each written batch triggers evaluation in-process. Test: batch write triggers eval (integration).
 
 ## Phase 6 - HTTP API module (read path first, then edges)
-- [ ] 6.1 feat(httpapi): current-rates-by-corridor handler calling a rates interface (Current), ranked by effective rate, standard class only with promos flagged. Test: 200 + correctly ranked payload with a fake rates (httptest unit) and with real rates (integration).
+- [ ] 6.1 feat(httpapi): current-rates-by-corridor handler calling a rates interface (Current) with RankOptions built from the viewer's promo toggle and promo eligibility (6.7); anonymous viewers send both from the browser. Crawler-facing responses use HidePromos. Test: 200 + correctly ranked payload with a fake rates (httptest unit) and with real rates (integration).
 - [ ] 6.2 feat(httpapi): logging + panic-recovery middleware. Test: handler panic returns 500, server survives (unit).
 - [ ] 6.3 feat(httpapi): token-bucket ratelimit middleware. Test: over-limit returns 429 (unit).
 - [ ] 6.4 feat(httpapi): B2B token auth middleware for /api/v1/b2b/* calling an accounts Authenticate interface. Test: valid vs invalid key (unit with fake, integration with accounts).
 - [ ] 6.5 feat(accounts): migration creating schema `accounts` (users, api_keys, stripe_events) + Stripe webhook idempotency via the evt_id ledger + users.tier derivation from subscription state; httpapi routes the webhook to accounts. Test: duplicate event ignored; tier updates on event (integration).
 - [ ] 6.6 feat(outbound): masked /out/* redirect against the allowlist, served through httpapi. Test: approved 302, unknown 403 (unit).
+- [ ] 6.7 feat(accounts): promo eligibility - record providers a signed-in user has sent with (from the post-click "did you make a transfer?" prompt) and the promo-toggle preference; expose PromoIneligible(ctx, user) for httpapi to build RankOptions. Test: confirmed provider becomes ineligible; toggle persists (integration).
 
 ## Phase 7 - Binary wiring
 - [ ] 7.1 feat(backend): cmd/api-server builds config and the platform/postgres pool, constructs every module, wires their interfaces together (ingestion -> rates, alerting; httpapi -> rates, accounts, outbound), and starts the consumer goroutine with recover(). Test: boot smoke, /health 200 (integration).
@@ -104,6 +105,7 @@ approach appears, a library misbehaves):
 - [ ] 10.6 feat(frontend): revalidation webhook endpoint + ingestion fires it; scoped rebuild writes S3 objects with a short s-maxage TTL and does NOT invalidate CloudFront per tick. Test: webhook triggers revalidate + written objects carry Cache-Control s-maxage (integration).
 - [ ] 10.7 ci: frontend-cd.yml build + push to S3 + CloudFront invalidate (deploy path only, for template changes; the per-tick ingestion path relies on s-maxage TTL, see 10.6). Test: workflow parses.
 - [ ] 10.8 feat(frontend): live rate hydration on corridor pages - small client fetch of the cached rates API that freshens the baked-in baseline, degrading gracefully to the baked value when JS is off. Interactive surfaces (alerts/dashboard/chat) are client-rendered against the same API, no static rebuild. Test: hydration updates the number; no-JS shows baked rate (unit + render).
+- [ ] 10.9 feat(frontend): promo controls - "hide promotional rates" toggle and the post-click "did you make a transfer with this provider?" prompt; signed-in users save to accounts (6.7), anonymous visitors keep both in local storage and send them with rate requests. Promo quotes are labeled (e.g. "first transfer only"). Test: toggle hides promos; confirming a transfer drops that provider's first-transfer promo (unit + render).
 
 ## Phase 11 - Agent guardrails, corpus, and gates (build before any code generation)
 - [ ] 11.1 feat(observability): structured scraper error/empty-payload emission + per-provider validation-rejection rate + CloudWatch metric filter + repository_dispatch webhook. Test: an error log produces a dispatch payload (unit + integration).
@@ -252,6 +254,16 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-21 [2.2, 6.1, 6.7, 10.9] Reversed the 2026-09-19 "rank standard only, promos as a badge"
+  rule. Promo quotes are now ranked with standard ones and labeled, because most viewers are new to
+  most providers and the promo is the real price for them. Returning customers are protected instead
+  by a hide-promos toggle and per-user promo eligibility: confirming a transfer in a post-click
+  prompt marks that provider's first-transfer promo as unavailable to the user (keyed by provider,
+  since first-transfer promos usually depend on being new to the provider, not the corridor).
+  Signed-in users' choices live in accounts (6.7); anonymous visitors keep them in the browser
+  (10.9). Crawler-facing static pages and JSON-LD rank standard quotes only, as they cannot know the
+  viewer. rates.Rank takes RankOptions so rates never tracks users (ADR 0002). Updated sadd.md
+  Section B item 7. No ADR.
 - 2026-11-21 [2.1, ADR 0002 amended] Dropped the rule that every module puts its implementation
   under <module>/internal/ from the start. A single package already hides its unexported details and
   depguard blocks cross-module imports, so each module starts as one package and adds
