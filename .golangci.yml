@@ -7,6 +7,83 @@ linters:
   default: standard
   enable:
     - revive
+    - depguard
+  settings:
+    depguard:
+      # ADR 0002: backend modules never import each other. Each module may
+      # import itself (including its own sub-packages) and platform/; anything
+      # else under backend/internal is denied. The more specific allow entry
+      # wins over the broader deny. cmd/ is not covered, so it can wire modules.
+      rules:
+        rates:
+          list-mode: lax
+          files:
+            - "**/backend/internal/rates/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/rates
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: modules must not import each other; declare an interface and wire it in cmd/api-server (ADR 0002)
+        ingestion:
+          list-mode: lax
+          files:
+            - "**/backend/internal/ingestion/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/ingestion
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: modules must not import each other; declare an interface and wire it in cmd/api-server (ADR 0002)
+        alerting:
+          list-mode: lax
+          files:
+            - "**/backend/internal/alerting/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/alerting
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: modules must not import each other; declare an interface and wire it in cmd/api-server (ADR 0002)
+        accounts:
+          list-mode: lax
+          files:
+            - "**/backend/internal/accounts/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/accounts
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: modules must not import each other; declare an interface and wire it in cmd/api-server (ADR 0002)
+        outbound:
+          list-mode: lax
+          files:
+            - "**/backend/internal/outbound/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/outbound
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: modules must not import each other; declare an interface and wire it in cmd/api-server (ADR 0002)
+        httpapi:
+          list-mode: lax
+          files:
+            - "**/backend/internal/httpapi/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/httpapi
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: modules must not import each other; declare an interface and wire it in cmd/api-server (ADR 0002)
+        platform:
+          list-mode: lax
+          files:
+            - "**/backend/internal/platform/**"
+          allow:
+            - github.com/SegunAdewola/remit-track/backend/internal/platform
+          deny:
+            - pkg: github.com/SegunAdewola/remit-track/backend/internal
+              desc: platform packages are technical and must not depend on domain modules (ADR 0002)
 
 formatters:
   enable:
