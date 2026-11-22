@@ -63,45 +63,67 @@ var ErrMixedComparison = errors.New("quote does not match the requested comparis
 // a different corridor or send amount than want, Rank returns an error
 // wrapping ErrMixedComparison.
 func Rank(want Comparison, records []raterecord.RateRecord, opts RankOptions) ([]Quote, []Skipped, error) {
-	// 1. Every record must be for the requested comparison.
+	if err := checkComparison(want, records); err != nil {
+		return nil, nil, err
+	}
+	quotes, skipped := buildQuotes(records, opts)
+	slices.SortFunc(quotes, compareQuotes)
+	for i := range quotes {
+		quotes[i].Position = i + 1
+	}
+	return quotes, skipped, nil
+}
+
+// checkComparison reports the first record that is not for want.
+func checkComparison(want Comparison, records []raterecord.RateRecord) error {
 	for _, r := range records {
 		if r.Pair != want.Pair || r.SendAmount != want.SendAmount {
-			return nil, nil, fmt.Errorf("rates: quote from %q for %s: %w", r.Provider, r.Pair, ErrMixedComparison)
+			return fmt.Errorf("rates: quote from %q for %s: %w", r.Provider, r.Pair, ErrMixedComparison)
 		}
 	}
+	return nil
+}
 
-	// 2. Build quotes: skip invalid records, drop promos the viewer should not see.
+// buildQuotes turns the valid records the viewer may see into unranked quotes,
+// and returns the invalid records separately.
+func buildQuotes(records []raterecord.RateRecord, opts RankOptions) ([]Quote, []Skipped) {
 	var quotes []Quote
 	var skipped []Skipped
 	for _, r := range records {
-		rate, err := r.EffectiveRate()
+		rate, err := r.EffectiveRate() // also validates r
 		if err != nil {
 			skipped = append(skipped, Skipped{Record: r, Err: err})
 			continue
 		}
-		if opts.HidePromos && r.Class != raterecord.ClassStandard {
-			continue
-		}
-		if r.Class == raterecord.ClassPromoFirstTransfer && opts.PromoIneligible[r.Provider] {
+		if opts.hides(r) {
 			continue
 		}
 		quotes = append(quotes, Quote{Record: r, EffectiveRate: rate})
 	}
+	return quotes, skipped
+}
 
-	// 3. Best rate first; ties by provider, then pay-in, then pay-out.
-	slices.SortFunc(quotes, func(a, b Quote) int {
-		return cmp.Or(
-			cmp.Compare(b.EffectiveRate, a.EffectiveRate),
-			cmp.Compare(a.Record.Provider, b.Record.Provider),
-			cmp.Compare(a.Record.PayIn, b.Record.PayIn),
-			cmp.Compare(a.Record.PayOut, b.Record.PayOut),
-		)
-	})
-
-	// 4. Position starts at 1.
-	for i := range quotes {
-		quotes[i].Position = i + 1
+// hides reports whether the viewer described by o should not see r: every
+// promotion when HidePromos is set, and first-transfer promotions from
+// providers the viewer has already used.
+func (o RankOptions) hides(r raterecord.RateRecord) bool {
+	if r.Class == raterecord.ClassStandard {
+		return false
 	}
+	if o.HidePromos {
+		return true
+	}
+	return r.Class == raterecord.ClassPromoFirstTransfer && o.PromoIneligible[r.Provider]
+}
 
-	return quotes, skipped, nil
+// compareQuotes orders quotes best first: higher effective rate, then
+// provider, pay-in method and pay-out method alphabetically, so equal rates
+// always come out in the same order.
+func compareQuotes(a, b Quote) int {
+	return cmp.Or(
+		cmp.Compare(b.EffectiveRate, a.EffectiveRate), // b first: descending
+		cmp.Compare(a.Record.Provider, b.Record.Provider),
+		cmp.Compare(a.Record.PayIn, b.Record.PayIn),
+		cmp.Compare(a.Record.PayOut, b.Record.PayOut),
+	)
 }
