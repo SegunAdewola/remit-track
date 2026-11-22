@@ -63,12 +63,15 @@ var ErrMixedComparison = errors.New("quote does not match the requested comparis
 // a different corridor or send amount than want, Rank returns an error
 // wrapping ErrMixedComparison.
 func Rank(want Comparison, records []raterecord.RateRecord, opts RankOptions) ([]Quote, []Skipped, error) {
+	// 1. Every record must be for the requested corridor and send amount.
 	for _, r := range records {
 		if r.Pair != want.Pair || r.SendAmount != want.SendAmount {
 			return nil, nil, fmt.Errorf("rates: quote from %q for %s: %w", r.Provider, r.Pair, ErrMixedComparison)
 		}
 	}
 
+	// 2. Build quotes: skip invalid records, leave out promos the viewer
+	// should not see.
 	var quotes []Quote
 	var skipped []Skipped
 	for _, r := range records {
@@ -83,7 +86,10 @@ func Rank(want Comparison, records []raterecord.RateRecord, opts RankOptions) ([
 		quotes = append(quotes, Quote{Record: r, EffectiveRate: rate})
 	}
 
+	// 3. Best rate first, with deterministic tie-breaks.
 	slices.SortFunc(quotes, compareQuotes)
+
+	// 4. Number the positions from 1.
 	for i := range quotes {
 		quotes[i].Position = i + 1
 	}
