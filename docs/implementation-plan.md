@@ -42,7 +42,7 @@ approach appears, a library misbehaves):
 - [x] 1.6 feat(shared): RateRecord.Validate rejects amounts more precise than their currency allows (Micros not a multiple of 10^(6 - MinorUnits)) with ErrExcessPrecision, and amounts in a currency missing from money.MinorUnits with ErrUnknownCurrency (a data check: the precision cannot be verified; not the supported-corridor business check, which stays at 4.2). Test: sub-cent CAD amount, fractional XOF amount and sub-cent fees rejected; whole-unit XOF accepted; currency outside the table rejected (table-driven unit).
 - [x] 1.7 feat(shared): RateRecord.EffectiveRate() (float64, error) = float64(ReceiveAmount.Micros) / float64(TotalPaid.Micros). No per-pair scaling (micros are the same scale for every currency). Calls Validate first. Test: known CAD->NGN ratio, CAD->XOF regression (430, not 4.3), invalid record returns an error; float comparisons use a tolerance (unit).
 - [x] 1.8 feat(shared): RateRecord JSON wire contract via struct tags (no custom marshalers). camelCase names (Google JSON Style Guide); Money nested as {"micros", "currency"} with micros as a JSON string (int64-as-string, like protobuf JSON, so any language reads it exactly); Pair as {"base", "quote"} (self-describing, no custom parser); timestamps RFC 3339 UTC. Decoding ignores unknown fields and does not validate; ingestion calls Validate. The batch envelope with a version field is 8.3's concern. Test: golden JSON for Money, CurrencyPair and RateRecord; RateRecord round-trip; micros sent as a bare number is rejected; unknown fields are ignored (unit).
-- [ ] 1.9 test(shared): property tests via native Go fuzzing (testing.F, no dependency). Properties: corridor.Parse/String round-trip; precision accepts k*step and rejects k*step+r for every table currency; EffectiveRate is finite, > 0 and never panics for valid records, and rises when ReceiveAmount rises; RateRecord JSON round-trips. Seed corpora run in every `go test`; time-boxed fuzzing (`-fuzztime=30s` per target) runs locally and as a CI job. Test: `go test ./...` green; each fuzz target runs 30s without failure.
+- [x] 1.9 test(shared): property tests via native Go fuzzing (testing.F, no dependency). Properties: corridor.Parse/String round-trip; precision accepts k*step and rejects k*step+r for every table currency; EffectiveRate is finite, > 0 and never panics for valid records, and rises when ReceiveAmount rises; RateRecord JSON round-trips. Seed corpora run in every `go test`; time-boxed fuzzing runs locally (`make fuzz`, 30s per target) and nightly in CI (`fuzz.yml`, 60s per target), not on every PR. Test: `go test ./...` green; each fuzz target runs 30s without failure.
 
 ## Phase 2 - Persistence (the source of truth)
 - [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
@@ -145,10 +145,13 @@ and record the outcome in the Decisions & changes log below.
 - [ ] (Phase 10) Adapt the V0-built frontend for v1: split `"use client"` components into a server
   shell + client islands so corridor pages render the rate server-side; decide on shadcn/Tailwind
   dependencies. Confirm where the V0 export lives.
-- [ ] (before 4.2 and Phase 9) Local cloud emulation: evaluate LocalStack (and any AWS-native
-  emulator) to run SQS/Lambda/S3/SSM locally and to `terraform apply` against before deploying.
-  Could replace the hand-rolled mock SQS in tests/regression. Check current licensing/free-tier
-  coverage (RDS is not in LocalStack's free tier; keep real Postgres via docker compose).
+- [ ] (before 4.2 and Phase 9) Local cloud emulation. Leading candidate: the AWS Emulator
+  (aws.amazon.com/products/developer-tools/emulator, repo github.com/aws/aws-emulator): free (CC0),
+  works with the standard AWS SDKs and CLI, in-memory state, no AWS account, native binary on Linux,
+  intended for dev/test/CI. Unknowns to check in its fidelity report before adopting: coverage of
+  SQS (shown in its tutorial), Lambda, S3, SSM, SES, EventBridge; how it runs on macOS; Terraform
+  support (not mentioned on its product page); GA vs preview. Fallback: LocalStack. Would replace
+  the hand-rolled mock SQS in tests/regression. Keep real Postgres via docker compose either way.
 
 ### Testing tools
 - [ ] (revisit after 1.9) Hegel (Antithesis, built on Hypothesis) for property-based testing:
@@ -246,6 +249,11 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-21 [1.9] FuzzRateRecordJSON found that Validate accepted invalid UTF-8 in Provider, which
+  encoding/json rewrites to U+FFFD, so a record could change in transit. Provider, PayIn and PayOut
+  are now slugs (lowercase ASCII letters, digits, '_' and '-'), with new ErrInvalidProvider and
+  ErrInvalidPayMethod; the failing input is kept as a permanent seed. Full fuzzing runs nightly and
+  on demand (fuzz.yml) rather than on every PR, since seeds already run in `make test`. No ADR.
 - 2026-11-21 [1.8] Settled the RateRecord JSON wire contract with language neutrality as the rule,
   so a future service in another language, or a split into services, can read it without custom
   code: camelCase field names, Pair as {"base","quote"} instead of the "CAD:NGN" string, and int64
