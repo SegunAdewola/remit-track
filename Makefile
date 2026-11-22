@@ -43,14 +43,17 @@ build:
 		fi; \
 	done
 
-## fuzz: run every fuzz target in shared for FUZZTIME each (default 30s).
-## Go fuzzes one target per run, so targets are listed and run in turn.
-## Seed inputs already run in `make test`; this explores beyond them.
+## fuzz: run every fuzz target in every non-empty module for FUZZTIME each
+## (default 30s). Go fuzzes one target per run, so targets are listed and run
+## in turn. Seed inputs already run in `make test`; this explores beyond them.
 fuzz:
-	@cd shared && for pkg in $$(go list ./...); do \
-		for f in $$(go test -list '^Fuzz' $$pkg | grep '^Fuzz'); do \
-			echo "==> fuzz $$pkg $$f"; \
-			go test $$pkg -run '^$$' -fuzz "^$$f\$$" -fuzztime $(FUZZTIME) || exit 1; \
+	@for m in $(MODULES); do \
+		if ! find $$m -name '*.go' | grep -q .; then continue; fi; \
+		for pkg in $$(cd $$m && go list ./...); do \
+			for f in $$(cd $$m && go test -list '^Fuzz' $$pkg | grep '^Fuzz'); do \
+				echo "==> fuzz $$pkg $$f"; \
+				(cd $$m && go test $$pkg -run '^$$' -fuzz "^$$f\$$" -fuzztime $(FUZZTIME)) || exit 1; \
+			done; \
 		done; \
 	done
 

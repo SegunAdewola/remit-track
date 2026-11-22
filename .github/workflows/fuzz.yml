@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   fuzz:
-    name: fuzz shared
+    name: fuzz all modules
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,4 +33,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fuzz-failures
-          path: shared/**/testdata/fuzz/
+          path: "**/testdata/fuzz/"
