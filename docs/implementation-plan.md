@@ -44,38 +44,39 @@ approach appears, a library misbehaves):
 - [x] 1.8 feat(shared): RateRecord JSON wire contract via struct tags (no custom marshalers). camelCase names (Google JSON Style Guide); Money nested as {"micros", "currency"} with micros as a JSON string (int64-as-string, like protobuf JSON, so any language reads it exactly); Pair as {"base", "quote"} (self-describing, no custom parser); timestamps RFC 3339 UTC. Decoding ignores unknown fields and does not validate; ingestion calls Validate. The batch envelope with a version field is 8.3's concern. Test: golden JSON for Money, CurrencyPair and RateRecord; RateRecord round-trip; micros sent as a bare number is rejected; unknown fields are ignored (unit).
 - [x] 1.9 test(shared): property tests via native Go fuzzing (testing.F, no dependency). Properties: corridor.Parse/String round-trip; precision accepts k*step and rejects k*step+r for every table currency; EffectiveRate is finite, > 0 and never panics for valid records, and rises when ReceiveAmount rises; RateRecord JSON round-trips. Seed corpora run in every `go test`; time-boxed fuzzing runs locally (`make fuzz`, 30s per target) and nightly in CI (`fuzz.yml`, 60s per target), not on every PR. Test: `go test ./...` green; each fuzz target runs 30s without failure.
 
-## Phase 2 - Persistence (the source of truth)
-- [ ] 2.1 feat(backend): internal/models structs (Quote view = a ranked comparison result carrying EffectiveRate + promo badge, AlertConfig, User) + validation. Test: zero-value and validation (unit).
-- [ ] 2.2 feat(database): migration 0001 historical_rates + current_rates with full quote columns (send_amount, total_paid, receive_amount, fees, offered_rate, pay_in, pay_out, rate_class; money as bigint micros, e.g. send_amount_micros, per ADR 0001) + UNIQUE(provider, currency_pair, send_amount, pay_in, pay_out, rate_class, scrape_timestamp). Test: up/down applies (integration, real Postgres).
-- [ ] 2.3 feat(database): connection pool + config from env. Test: connect and ping (integration).
-- [ ] 2.4 feat(database): idempotent UPSERT into historical_rates (ON CONFLICT on the full quote key DO NOTHING). Test: duplicate ignored, distinct timestamps/amounts kept (integration).
-- [ ] 2.5 feat(database): current_rates upsert on insert + read-latest-by-quote-key query ranked by effective rate. Test: one row per quote key, historical not scanned (integration).
+## Phase 2 - Rates module (persistence of quotes; modules per ADR 0002)
+- [ ] 2.1 chore(backend): module layout (doc.go per module: rates, ingestion, alerting, accounts, outbound, httpapi, platform/postgres) + depguard rule in .golangci.yml forbidding imports between module packages (cmd/ and platform/ exempt). Test: `golangci-lint config verify`; a deliberate cross-module import fails lint (checked once, then removed).
+- [ ] 2.2 feat(rates): Quote view (a ranked comparison result carrying EffectiveRate + promo badge) + Rank (pure): orders by EffectiveRate, ranks standard class only, flags promos. Test: ordering, promo exclusion from rank, badge (unit).
+- [ ] 2.3 feat(platform): platform/postgres connection pool + config from env. Test: connect and ping (integration).
+- [ ] 2.4 feat(rates): migration creating schema `rates` with historical_rates + current_rates and full quote columns (send_amount_micros, total_paid_micros, receive_amount_micros, fees_micros + currencies, offered_rate, pay_in, pay_out, rate_class; money as bigint micros per ADR 0001) + UNIQUE(provider, currency_pair, send_amount_micros, pay_in, pay_out, rate_class, scrape_timestamp). Decide the migration tool here (possible new dependency: discuss). Test: up/down applies (integration, real Postgres).
+- [ ] 2.5 feat(rates): Save(ctx, []RateRecord): idempotent insert into rates.historical_rates (ON CONFLICT on the full quote key DO NOTHING). Test: duplicate ignored, distinct timestamps/amounts kept (integration).
+- [ ] 2.6 feat(rates): Save also upserts rates.current_rates; Current(ctx, pair) reads latest by quote key, ranked via 2.2. Test: one row per quote key, historical not scanned (integration).
 
-## Phase 3 - Cache
-- [ ] 3.1 feat(cache): RateCache interface + sync.Map implementation. Test: get/set/miss + concurrent access (unit).
+## Phase 3 - Cache (inside rates)
+- [ ] 3.1 feat(rates): read-through cache behind Current, an internal detail of rates (sync.Map in lean; ElastiCache stays a swap inside rates for enterprise). Test: hit/miss, invalidated by Save, concurrent access (unit).
 
-## Phase 4 - Ingestion (SQS consumer, in-process)
+## Phase 4 - Ingestion module (SQS consumer, in-process)
 - [ ] 4.1 feat(ingestion): batch builder accumulates messages into multi-row batches by size and time. Test: batching rules (unit).
-- [ ] 4.2 feat(ingestion): consumer long-polls a queue, decodes RateRecord, validates it, rejects corridors not in the injected supported-corridors allowlist, writes via database. Test: mock SQS -> rows in Postgres; unsupported corridor rejected (integration).
+- [ ] 4.2 feat(ingestion): consumer long-polls a queue, decodes RateRecord, validates it, rejects corridors not in the injected supported-corridors allowlist, and hands valid batches to a QuoteWriter and then a BatchObserver (interfaces declared by ingestion). Test: fakes record what they receive, unsupported corridor rejected (unit); mock SQS -> real rates module -> rows in Postgres (integration).
 - [ ] 4.3 feat(ingestion): recover() boundary + poison-message handling (log/DLQ, loop survives). Records failing Validate go to the DLQ, not discarded, so they can be redriven after a parser fix (SQS retention max 14 days). Test: bad message does not kill the loop and lands in the DLQ (integration).
 
-## Phase 5 - Alerting (in-memory evaluation, durable rules + delivery)
-- [ ] 5.1 feat(alerting): corridor index map build/refresh from AlertConfig; DB is source of truth, index rebuilt on boot. Test: build, lookup, and rebuild-from-DB (unit).
+## Phase 5 - Alerting module (in-memory evaluation, durable rules + delivery)
+- [ ] 5.1 feat(alerting): migration creating schema `alerting` (alert_configs, trigger state, notifications outbox) + corridor index build/refresh from alert_configs; DB is source of truth, index rebuilt on boot. Test: build, lookup, and rebuild-from-DB (unit + integration).
 - [ ] 5.2 feat(alerting): evaluation loop fires on threshold crossing only, with persisted per-alert trigger state (armed/triggered) for edge-triggered dedup. Test: crossing fires once, stays-crossed does not re-fire, re-arms after reset (unit).
 - [ ] 5.3 feat(alerting): transactional outbox - firing writes a notifications row (status=pending) in the SAME tx as the trigger-state flip. Test: fired alert commits a pending outbox row atomically (integration).
 - [ ] 5.4 feat(alerting): notification dispatcher drains pending outbox via SES (behind iface, fake in test), marks sent, dedups by notification_id. Test: pending row delivered once; crash-before-send leaves pending; retry does not double-send (unit).
-- [ ] 5.5 feat(backend): wire ingestion batch completion to alerting evaluation in-process. Test: batch write triggers eval (integration).
+- [ ] 5.5 feat(backend): alerting.OnBatch satisfies ingestion.BatchObserver; cmd/api-server wires it so each written batch triggers evaluation in-process. Test: batch write triggers eval (integration).
 
-## Phase 6 - Server (read path first, then edges)
-- [ ] 6.1 feat(server): current-rates-by-corridor handler backed by cache/DB, ranked by effective rate (received/paid), standard rate class only with promos flagged. Test: 200 + correctly ranked payload (httptest integration).
-- [ ] 6.2 feat(server): logging + panic-recovery middleware. Test: handler panic returns 500, server survives (unit).
-- [ ] 6.3 feat(server): token-bucket ratelimit middleware. Test: over-limit returns 429 (unit).
-- [ ] 6.4 feat(server): B2B token auth middleware for /api/v1/b2b/*. Test: valid vs invalid key (integration).
-- [ ] 6.5 feat(server): Stripe webhook idempotency via evt_id ledger, plus users.tier derivation from subscription state. Test: duplicate event ignored; tier updates on event (integration).
-- [ ] 6.6 feat(server): masked /out/* redirect against allowlist. Test: approved 302, unknown 403 (unit).
+## Phase 6 - HTTP API module (read path first, then edges)
+- [ ] 6.1 feat(httpapi): current-rates-by-corridor handler calling a rates interface (Current), ranked by effective rate, standard class only with promos flagged. Test: 200 + correctly ranked payload with a fake rates (httptest unit) and with real rates (integration).
+- [ ] 6.2 feat(httpapi): logging + panic-recovery middleware. Test: handler panic returns 500, server survives (unit).
+- [ ] 6.3 feat(httpapi): token-bucket ratelimit middleware. Test: over-limit returns 429 (unit).
+- [ ] 6.4 feat(httpapi): B2B token auth middleware for /api/v1/b2b/* calling an accounts Authenticate interface. Test: valid vs invalid key (unit with fake, integration with accounts).
+- [ ] 6.5 feat(accounts): migration creating schema `accounts` (users, api_keys, stripe_events) + Stripe webhook idempotency via the evt_id ledger + users.tier derivation from subscription state; httpapi routes the webhook to accounts. Test: duplicate event ignored; tier updates on event (integration).
+- [ ] 6.6 feat(outbound): masked /out/* redirect against the allowlist, served through httpapi. Test: approved 302, unknown 403 (unit).
 
 ## Phase 7 - Binary wiring
-- [ ] 7.1 feat(backend): cmd/api-server wires config, db, cache, server, and starts the consumer goroutine with recover(). Test: boot smoke, /health 200 (integration).
+- [ ] 7.1 feat(backend): cmd/api-server builds config and the platform/postgres pool, constructs every module, wires their interfaces together (ingestion -> rates, alerting; httpapi -> rates, accounts, outbound), and starts the consumer goroutine with recover(). Test: boot smoke, /health 200 (integration).
 - [ ] 7.2 feat(infra): systemd unit + env profile load (REMITTRACK_INFRA_PROFILE). Test: config parse (unit).
 
 ## Phase 8 - Scrapers (first full external slice)
@@ -134,10 +135,6 @@ approach appears, a library misbehaves):
 Items raised in discussion that need a decision or a plan edit. When one is resolved, delete it here
 and record the outcome in the Decisions & changes log below.
 
-- [ ] (before 2.1, plan mode + likely ADR) Modulith boundaries: replace the planned kind-grouped
-  `internal/models` + shared `internal/database` with domain-owned modules (e.g. rates, alerting,
-  users/billing), each owning its types and tables (Parnas: hide each module's secret). Update
-  repo.md, sadd.md and Phases 2/5/6 accordingly.
 - [ ] (before 7.1) Write performance hypotheses as numbers (e.g. cached read p99 at N rps, consumer
   records/s, alert eval latency at 10k rules) in sadd.md.
 - [ ] (after 7.1) Add a step for a k6 baseline load test with thresholds as pass/fail (dev tool via
@@ -188,7 +185,7 @@ and record the outcome in the Decisions & changes log below.
   off in production. It has no plan step yet; add one (likely after Phase 7) when we get there.
 
 ### Cost & simplification
-Decide together in plan mode after Phase 1, before 2.2 builds the schema. On decision, update
+Decide together in plan mode after Phase 1, before 2.4 builds the schema. On decision, update
 sadd.md, design.md, repo.md and the affected steps, and write an ADR. Estimated 2026-11-13: current design ~$52-55/mo infra + $25-300 residential proxy + ~$5-30 LLM.
 Candidate lean target ~$27/mo infra, ~$40-80 all-in. Figures are hand-estimated list prices;
 verify in the AWS Pricing Calculator before deciding.
@@ -221,7 +218,7 @@ verify in the AWS Pricing Calculator before deciding.
   units -> update the table, test and parser fixtures before the effective date. Stored amounts are
   micros (ADR 0001), so no rescaling migration is needed.
 - [ ] historical_rates growth (~0.6-1 GB/mo at the above volumes): decide a retention/rollup policy
-  (e.g. raw 30-90 days, hourly rollups kept) before 2.2.
+  (e.g. raw 30-90 days, hourly rollups kept) before 2.4.
 - [ ] Compute stays EC2 (or Lightsail; verify pricing). Rejected for now: ECS Fargate (needs an ALB,
   ~$28-32/mo; revisit at the enterprise profile, where it also replaces nginx blue/green) and
   Lambda-only (breaks the single-process alert pool/cache/consumer; RDS Proxy ~$22/mo minimum).
@@ -249,6 +246,16 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-21 [Phases 2-7, ADR 0002] Replaced the kind-grouped backend layout (internal/models for
+  every type, internal/database for every table) with domain-owned modules: rates, ingestion,
+  alerting, accounts, outbound, httpapi, plus technical platform/ packages. Each module owns its
+  tables in its own Postgres schema, keeps its implementation under its own internal/, and never
+  imports another module; modules declare small interfaces for what they need and cmd/api-server
+  wires them. Phase 2 is now the rates module (2.1 layout + depguard boundary rule, 2.2 Quote + Rank,
+  2.3 platform/postgres, 2.4 rates schema migration, 2.5 Save, 2.6 Current); the cache moved inside
+  rates (3.1); server became httpapi; Stripe/users became accounts (6.5); /out became outbound (6.6).
+  Updated repo.md, sadd.md Section B and backend/CLAUDE.md. See
+  docs/decisions/0002-domain-owned-modules.md.
 - 2026-11-21 [1.9] FuzzRateRecordJSON found that Validate accepted invalid UTF-8 in Provider, which
   encoding/json rewrites to U+FFFD, so a record could change in transit. Provider, PayIn and PayOut
   are now slugs (lowercase ASCII letters, digits, '_' and '-'), with new ErrInvalidProvider and

@@ -14,27 +14,22 @@ remit-track/
 │   ├── go.mod
 │   ├── go.sum
 │   ├── cmd/
-│   │   └── api-server/                  # REST API, B2B layer (/api/v1/b2b/*), Stripe webhook
-│   │       └── main.go                  # Single modulith binary; SQS consumer runs as a goroutine
-│   └── internal/
-│       ├── cache/                       # RateCache iface: sync.Map (lean) / ElastiCache (enterprise)
-│       │   └── rate_cache.go
-│       ├── database/                    # PG pool, idempotent UPSERT, current_rates hot table
-│       │   ├── postgres.go
-│       │   └── migrations/              # Versioned SQL migrations
-│       ├── models/                      # Domain entities (no third-party deps)
-│       │   ├── alert.go
-│       │   ├── marketing.go             # Masked outbound routing allowlist (/out/*)
-│       │   ├── quote.go                 # Persistence view over shared/raterecord
-│       │   └── user.go                  # Token auth, Stripe evt_id hashes, tier metadata
-│       ├── alerting/                    # In-memory corridor index map and evaluation loop
-│       │   └── alert_pool.go
-│       ├── ingestion/                   # SQS consumer: batch builder and dedupe
-│       │   └── consumer.go
-│       └── server/
-│           ├── handlers/                # REST, B2B, and chat handlers
-│           ├── middleware/              # Token auth, Stripe idempotency, logging
-│           └── ratelimit/               # Token-bucket limiter
+│   │   └── api-server/
+│   │       └── main.go                  # Single modulith binary; the only code that wires modules together
+│   └── internal/                        # Domain-owned modules (ADR 0002); modules never import each other
+│       ├── rates/                       # Owns schema `rates`: Save, Current (ranked), Quote view
+│       │   └── internal/                # Store, migrations, read-through cache (sync.Map / ElastiCache)
+│       ├── ingestion/                   # SQS consumer, batching, DLQ, corridor allowlist; no tables
+│       │   └── internal/                # Declares QuoteWriter + BatchObserver at the package root
+│       ├── alerting/                    # Owns schema `alerting`: rules, trigger state, outbox; OnBatch
+│       │   └── internal/                # Corridor index, evaluator, dispatcher, migrations
+│       ├── accounts/                    # Owns schema `accounts`: users, API keys, Stripe ledger, tiers
+│       │   └── internal/                # Key hashing, Stripe client, migrations
+│       ├── outbound/                    # Masked /out/* redirect allowlist; no tables
+│       ├── httpapi/                     # HTTP transport only: routes, middleware, rate limiting
+│       │   └── internal/                # Handlers, middleware, token-bucket limiter
+│       └── platform/
+│           └── postgres/                # Technical only: pool, config from env, migration runner
 ├── lambdas/                             # Stateless serverless ingestion (own go.mod)
 │   ├── go.mod                           # Depends on ../shared
 │   └── scrapers/                        # Per-provider deployment archives
@@ -129,7 +124,7 @@ remit-track/
 
 4. **CI and CD are distinct; infra is human-gated.** `*-ci` runs tests and builds on every PR. `*-cd` ships. `infra-plan.yml` posts a `terraform plan` to the PR and `infra-apply.yml` runs only after manual approval, matching the SADD's review gate.
 
-5. **One modulith binary, by design.** The API, chat, alert pool, and SQS ingestion consumer all run inside a single binary under one systemd unit (`remittrack.service`). This keeps the SADD's in-process hot path intact: the consumer writes a batch and the in-memory alert pool evaluates it immediately, with no DB round trip. The ingestion goroutine must `recover()` at its boundary so a scraper-side panic cannot take down the API. The `internal/ingestion` and `internal/alerting` packages are the seams to extract into a separate `cmd/` entrypoint later, if and when ingestion needs to scale independently.
+5. **One modulith binary, by design.** The API, chat, alert pool, and SQS ingestion consumer all run inside a single binary under one systemd unit (`remittrack.service`). This keeps the SADD's in-process hot path intact: the consumer writes a batch and the in-memory alert pool evaluates it immediately, with no DB round trip. The ingestion goroutine must `recover()` at its boundary so a scraper-side panic cannot take down the API. Inside the binary the code is split into domain-owned modules (ADR 0002): each owns its tables in its own Postgres schema, keeps its implementation under its own `internal/`, and declares small interfaces for what it needs from others, which `cmd/api-server` wires together. Because modules never import each other, any of them can later move to its own `cmd/` entrypoint or service by changing the wiring and moving its schema.
 
 6. **Roadmap items not yet in the tree.** Three SADD features are intentionally deferred and will add structure when scheduled (see implementation-plan Phase 13): the operator market intelligence dashboard (a rollup-backed, B2B-gated read surface; v1-vs-deferred still to be decided), the enterprise compute profile (ALB + ECS Fargate, already stubbed at `infra/terraform/modules/compute`), and the tier reconciliation job. API-first ingestion is already reflected: each `provider_map.json` entry declares an `api` or `scrape` strategy, and the scraper Lambdas try the official API before falling back.
 

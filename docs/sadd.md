@@ -19,16 +19,16 @@ flowchart TD
     subgraph Host["2 · Compute Host Node: EC2 t4g.micro (1 GB RAM, systemd)"]
         direction TB
         NGINX["NGINX Reverse Proxy<br/>Serves HTTP :80 from CloudFront (TLS ends at edge)<br/>Blue/Green upstream :8080 / :8081"]
-        subgraph Mod["Go Application Modulith Core"]
+        subgraph Mod["Go Application Modulith Core (domain-owned modules, ADR 0002)"]
             direction TB
-            API["API Package<br/>Consumer REST and B2B token gate"]
-            Chat["Chat Package<br/>LLM context router, streaming workers"]
-            Alert["Alert Pool Worker<br/>In-memory corridor index matcher"]
-            Ingest["Ingestion Consumer<br/>Persistent SQS long-poll, multi-row DB builder"]
+            API["httpapi<br/>Consumer REST, B2B token gate, rate limiting"]
+            Chat["Chat<br/>LLM context router, streaming workers"]
+            Ingest["ingestion<br/>Persistent SQS long-poll, batching, DLQ"]
+            RateCache["rates<br/>Quotes, ranking, read-through cache<br/>Lean: sync.Map · Enterprise: ElastiCache Redis"]
+            Alert["alerting<br/>In-memory corridor index, outbox"]
+            Accounts["accounts<br/>Users, API keys, Stripe tiers"]
         end
-        RateCache["RateCache Interface<br/>Lean: sync.Map · Enterprise: ElastiCache Redis"]
         NGINX --> Mod
-        Mod --> RateCache
     end
 
     RDS["3 · Core Storage: AWS RDS PostgreSQL<br/>db.t4g.micro · Multi-AZ active-passive · PITR · 20 GB gp3"]
@@ -56,7 +56,7 @@ flowchart TD
 
     CFpub -->|filtered HTTP| NGINX
     CFb2b -->|filtered HTTP| NGINX
-    RateCache -->|persistent DB connections| RDS
+    Mod -->|pooled connections, one schema per module| RDS
     RDS -->|app telemetry stream| CW
     CW -->|repository dispatch webhook| Agent
     Canary -->|on manual merge approval| Sched
@@ -111,6 +111,8 @@ flowchart TD
 ## Section B: Core Backend Modulith, In-Memory Alert Engine, & B2B Layer
 ### Architectural Design & Implementation Blueprint
 The core application (`/backend`) is constructed inside a single Go compiled modulith binary package running under **Linux Systemd Process Supervision** on an **AWS EC2 `t4g.micro`** virtual node.
+
+Inside the binary, code is split into **domain-owned modules** (ADR 0002): `rates` (quotes, ranking, cache), `ingestion` (SQS consumption, batching, DLQ), `alerting` (rules, evaluation, notifications outbox), `accounts` (users, API keys, Stripe tiers), `outbound` (redirect allowlist), and `httpapi` (HTTP transport only). Each module owns its tables in its own PostgreSQL schema and never reads another module's tables. Modules never import each other: a module declares small interfaces for what it needs (for example, `ingestion` declares a `QuoteWriter` and a `BatchObserver`), and `cmd/api-server` is the only code that wires concrete modules together. Data crosses boundaries only through those calls, using the `shared/` domain types.
 ```mermaid
 flowchart TD
     SQS["SQS Message Queue"]
@@ -178,6 +180,7 @@ flowchart TD
 
 ### Architectural Trade-offs
 
+* **Domain-Owned Modules over Kind-Grouped Packages**: Splitting the backend by domain, with a Postgres schema per module and modules talking only through interfaces wired in `main`, costs some extra code (interface declarations and wiring) and forbids convenient cross-module SQL joins. In exchange, each module's storage and logic can change without touching the others, most module tests run against small fakes with no database, and any module can later be extracted into its own service by changing the wiring and moving its schema (ADR 0002).
 * **In-Memory Map Cache over Distributed Redis Infrastructure**: Running alert caches natively inside a Go `sync.Map` or local pointer allocation layer delivers incredibly low latency at zero cost. However, it binds your state memory to a single host computer footprint. If you expand the deployment cluster to support horizontal multi-node scaling across separate machines, this in-memory cache architecture must be refactored to use an external, shared distributed cache layer like **Amazon ElastiCache Redis**. The same `REMITTRACK_INFRA_PROFILE` switch that flips the cache also selects the compute topology: the LEAN profile is the single EC2 modulith, while the ENTERPRISE profile repoints CloudFront to an AWS Application Load Balancer fronting an autoscaling **AWS ECS Fargate** cluster of Go containers. Note the coupling this exposes: the in-memory alert pool assumes a single process, so the move to multi-node Fargate requires either relocating the alert pool behind ElastiCache or designating one node as the alerting owner. That decision must be made deliberately at scale-up time, not discovered during it.
 * **Durability via DB + Outbox, Orthogonal to the Cache Choice**: The in-memory-vs-Redis decision above is purely a *latency-and-scaling* axis; it is deliberately decoupled from *durability*. Because alert rules and trigger state are persisted in PostgreSQL and notifications flow through a transactional outbox, neither a lost cache nor a crashed process can drop a user alert or a pending notification. This is what lets the alert pool stay in-memory for speed without accepting any data-loss risk: the two concerns are independent by design, so "in-memory" here never means "in-memory only."
 * **Cached + Coalesced Live Quotes over Per-Request Fan-Out**: Quoting every provider live on every comparison would multiply one user request into 15+ outbound calls — latency bound to the slowest provider, provider rate-limit exposure, and per-call cost. Serving benchmarks from cache and reserving live fan-out for genuine cache misses (concurrent, deadline-bounded, single-flighted, short-TTL cached) keeps the common case at zero upstream calls while still delivering exact, amount-specific quotes on demand. The cost is a second (pull) ingestion path alongside the scheduled (push) one, and eventual — not instant — accuracy for a brand-new amount until its first live quote lands.
