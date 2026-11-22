@@ -16,18 +16,14 @@ remit-track/
 │   ├── cmd/
 │   │   └── api-server/
 │   │       └── main.go                  # Single modulith binary; the only code that wires modules together
-│   └── internal/                        # Domain-owned modules (ADR 0002); modules never import each other
-│       ├── rates/                       # Owns schema `rates`: Save, Current (ranked), Quote view
-│       │   └── internal/                # Store, migrations, read-through cache (sync.Map / ElastiCache)
-│       ├── ingestion/                   # SQS consumer, batching, DLQ, corridor allowlist; no tables
-│       │   └── internal/                # Declares QuoteWriter + BatchObserver at the package root
+│   └── internal/                        # Domain-owned modules (ADR 0002); modules never import each other.
+│       │                                # Each starts as one package; sub-packages go under <module>/internal/.
+│       ├── rates/                       # Owns schema `rates`: Save, Current (ranked), Quote view, cache
+│       ├── ingestion/                   # SQS consumer, batching, DLQ, corridor allowlist; declares QuoteWriter + BatchObserver
 │       ├── alerting/                    # Owns schema `alerting`: rules, trigger state, outbox; OnBatch
-│       │   └── internal/                # Corridor index, evaluator, dispatcher, migrations
 │       ├── accounts/                    # Owns schema `accounts`: users, API keys, Stripe ledger, tiers
-│       │   └── internal/                # Key hashing, Stripe client, migrations
 │       ├── outbound/                    # Masked /out/* redirect allowlist; no tables
 │       ├── httpapi/                     # HTTP transport only: routes, middleware, rate limiting
-│       │   └── internal/                # Handlers, middleware, token-bucket limiter
 │       └── platform/
 │           └── postgres/                # Technical only: pool, config from env, migration runner
 ├── lambdas/                             # Stateless serverless ingestion (own go.mod)
@@ -124,7 +120,7 @@ remit-track/
 
 4. **CI and CD are distinct; infra is human-gated.** `*-ci` runs tests and builds on every PR. `*-cd` ships. `infra-plan.yml` posts a `terraform plan` to the PR and `infra-apply.yml` runs only after manual approval, matching the SADD's review gate.
 
-5. **One modulith binary, by design.** The API, chat, alert pool, and SQS ingestion consumer all run inside a single binary under one systemd unit (`remittrack.service`). This keeps the SADD's in-process hot path intact: the consumer writes a batch and the in-memory alert pool evaluates it immediately, with no DB round trip. The ingestion goroutine must `recover()` at its boundary so a scraper-side panic cannot take down the API. Inside the binary the code is split into domain-owned modules (ADR 0002): each owns its tables in its own Postgres schema, keeps its implementation under its own `internal/`, and declares small interfaces for what it needs from others, which `cmd/api-server` wires together. Because modules never import each other, any of them can later move to its own `cmd/` entrypoint or service by changing the wiring and moving its schema.
+5. **One modulith binary, by design.** The API, chat, alert pool, and SQS ingestion consumer all run inside a single binary under one systemd unit (`remittrack.service`). This keeps the SADD's in-process hot path intact: the consumer writes a batch and the in-memory alert pool evaluates it immediately, with no DB round trip. The ingestion goroutine must `recover()` at its boundary so a scraper-side panic cannot take down the API. Inside the binary the code is split into domain-owned modules (ADR 0002): each owns its tables in its own Postgres schema, starts as one package (sub-packages go under its own `internal/` only once it splits), and declares small interfaces for what it needs from others, which `cmd/api-server` wires together. Because modules never import each other, any of them can later move to its own `cmd/` entrypoint or service by changing the wiring and moving its schema.
 
 6. **Roadmap items not yet in the tree.** Three SADD features are intentionally deferred and will add structure when scheduled (see implementation-plan Phase 13): the operator market intelligence dashboard (a rollup-backed, B2B-gated read surface; v1-vs-deferred still to be decided), the enterprise compute profile (ALB + ECS Fargate, already stubbed at `infra/terraform/modules/compute`), and the tier reconciliation job. API-first ingestion is already reflected: each `provider_map.json` entry declares an `api` or `scrape` strategy, and the scraper Lambdas try the official API before falling back.
 

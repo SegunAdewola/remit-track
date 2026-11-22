@@ -246,6 +246,10 @@ verify in the AWS Pricing Calculator before deciding.
 ## Decisions & changes log
 Append newest first. Format: `YYYY-MM-DD [step] what changed and why (link ADR if any)`.
 
+- 2026-11-21 [2.1, ADR 0002 amended] Dropped the rule that every module puts its implementation
+  under <module>/internal/ from the start. A single package already hides its unexported details and
+  depguard blocks cross-module imports, so each module starts as one package and adds
+  <module>/internal/ only when it splits into sub-packages. Avoids structure before it is needed.
 - 2026-11-21 [Phases 2-7, ADR 0002] Replaced the kind-grouped backend layout (internal/models for
   every type, internal/database for every table) with domain-owned modules: rates, ingestion,
   alerting, accounts, outbound, httpapi, plus technical platform/ packages. Each module owns its

@@ -40,9 +40,11 @@ Three rules keep the boundaries real:
    example, `ingestion` declares a `QuoteWriter` and a `BatchObserver`. `cmd/api-server` is the only
    code that knows every module, and it connects them. Only `shared/` types such as `RateRecord`
    cross module boundaries.
-3. **A module's implementation lives under `<module>/internal/`.** The Go compiler then stops other
-   modules from importing it. A depguard rule in golangci-lint stops modules from importing each
-   other's top-level packages.
+3. **A depguard rule in golangci-lint stops modules from importing each other.** Each module starts
+   as a single package, where unexported names already hide its details. When a module splits into
+   several packages, the extra packages go under `<module>/internal/`, so the Go compiler stops
+   other modules from importing them. (Amended 2026-11-21: creating `internal/` folders before a
+   module has more than one package was unneeded structure.)
 
 ## Consequences
 

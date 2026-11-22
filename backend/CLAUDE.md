@@ -9,7 +9,8 @@ outbound, httpapi, plus technical internal/platform/* packages.
 - Modules never import each other. A module declares the small interfaces it needs; cmd/api-server is
   the only place that wires modules together. Only shared/ types (RateRecord, Money, CurrencyPair)
   cross module boundaries.
-- A module's implementation goes under <module>/internal/ so other modules cannot import it.
+- Each module starts as one package. Only when it splits into sub-packages do they go under
+  <module>/internal/. A depguard rule in .golangci.yml rejects cross-module imports.
 - platform/ packages hold technical code only (no domain logic) and may be imported by any module.
 - Domain types (RateRecord) come from the shared module. Do not redefine them here.
 - Handlers are thin: no business logic and no direct DB calls in handlers. Logic lives in modules.
